@@ -55,5 +55,9 @@ Thumbs.db
 vendor/
 .bundle/
 
+# dotnet build output
+Tests.Local/bin/
+Tests.Local/obj/
+
 # Claude Code local settings
 .claude/settings.local.json
