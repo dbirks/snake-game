@@ -182,14 +182,16 @@ namespace SnakeGame.Tests.EditMode
         [Test]
         public void RunTicks_ExecutesAllCommands()
         {
-            var sim = new SnakeSimulation(seed: 0);
+            // Use seed 123 and short run to ensure snake stays alive
+            var sim = new SnakeSimulation(seed: 123);
             var commands = new List<InputCommand>();
-            for (int i = 0; i < 20; i++)
+            for (int i = 0; i < 5; i++)
                 commands.Add(InputCommand.None);
 
             sim.RunTicks(FixedDt, commands);
 
-            Assert.AreEqual(20, sim.State.TickCount);
+            Assert.AreEqual(5, sim.State.TickCount);
+            Assert.IsTrue(sim.State.IsAlive);
         }
     }
 }

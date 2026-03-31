@@ -104,12 +104,16 @@ namespace SnakeGame.Core
                 State.Segments.RemoveAt(State.Segments.Count - 1);
             }
 
-            // Self-collision check (skip head and first few segments)
-            for (int i = 4; i < State.Segments.Count; i++)
+            // Self-collision check (skip head and nearby segments to avoid
+            // false positives from tightly-spaced trailing body)
+            const float collisionRadius = 0.15f;
+            float collisionThresholdSqr = collisionRadius * collisionRadius;
+            int skipSegments = Math.Max(8, (int)(InitialLength * 1.5f));
+            for (int i = skipSegments; i < State.Segments.Count; i++)
             {
                 var seg = State.Segments[i];
                 var diff = new Vector2F(newHead.X - seg.X, newHead.Y - seg.Y);
-                if (diff.SqrMagnitude < SegmentSpacing * SegmentSpacing * 0.5f)
+                if (diff.SqrMagnitude < collisionThresholdSqr)
                 {
                     State.IsAlive = false;
                     break;
