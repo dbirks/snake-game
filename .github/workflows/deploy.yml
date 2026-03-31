@@ -1,0 +1,164 @@
+name: tvOS TestFlight Deployment
+
+on:
+  push:
+    branches: [main]
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      force_write:
+        description: 'Force certificate creation (first time setup)'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  RUBY_VERSION: '3.2'
+
+jobs:
+  # Run tests first (on cheap Linux runners)
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/cache@v4
+        with:
+          path: Library
+          key: Library-Test-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          restore-keys: Library-
+
+      - uses: game-ci/unity-test-runner@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          testMode: EditMode
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+
+  # Build Unity → Xcode project, then archive and upload (macOS runner)
+  build-and-deploy:
+    name: Build & Deploy to TestFlight
+    needs: [test]
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate build number
+        id: build_number
+        run: |
+          BUILD_NUMBER=$(date +%Y%m%d%H%M%S)
+          echo "build_number=${BUILD_NUMBER}" >> $GITHUB_OUTPUT
+
+      # GameCI builds Unity project and generates Xcode project for tvOS
+      - name: Cache Unity Library
+        uses: actions/cache@v4
+        with:
+          path: Library
+          key: Library-tvOS-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          restore-keys: |
+            Library-tvOS-
+            Library-
+
+      - name: Build Unity tvOS Xcode project
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          targetPlatform: tvOS
+          buildMethod: SnakeGame.Editor.BuildScript.BuildTvOS
+
+      - name: Select Xcode 16
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.2.app || sudo xcode-select -s /Applications/Xcode_16.app
+          xcodebuild -version
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ env.RUBY_VERSION }}
+          bundler-cache: true
+
+      - name: Setup SSH Deploy Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.FASTLANE_MATCH_DEPLOY_KEY }}" > ~/.ssh/match_deploy_key
+          chmod 600 ~/.ssh/match_deploy_key
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          cat > ~/.ssh/config << SSHEOF
+          Host github.com
+            HostName github.com
+            User git
+            IdentityFile ~/.ssh/match_deploy_key
+            IdentitiesOnly yes
+          SSHEOF
+          chmod 600 ~/.ssh/config
+
+      - name: Setup Keychain
+        run: |
+          security create-keychain -p "" build.keychain
+          security list-keychains -s build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          security set-keychain-settings -t 3600 -u build.keychain
+
+      - name: Generate certificates and profiles
+        run: bundle exec fastlane certificates_distribution
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+          MATCH_PASSWORD: ${{ secrets.FASTLANE_MATCH_PASSWORD }}
+          GIT_SSH_COMMAND: "ssh -i ~/.ssh/match_deploy_key -o IdentitiesOnly=yes"
+          MATCH_GIT_URL: ${{ secrets.FASTLANE_MATCH_GIT_URL }}
+          MATCH_FORCE_WRITE: ${{ github.event.inputs.force_write || 'false' }}
+
+      - name: Build and upload to TestFlight
+        run: bundle exec fastlane beta
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+          MATCH_PASSWORD: ${{ secrets.FASTLANE_MATCH_PASSWORD }}
+          GIT_SSH_COMMAND: "ssh -i ~/.ssh/match_deploy_key -o IdentitiesOnly=yes"
+          MATCH_GIT_URL: ${{ secrets.FASTLANE_MATCH_GIT_URL }}
+          MATCH_FORCE_WRITE: ${{ github.event.inputs.force_write || 'false' }}
+          GITHUB_REF: ${{ github.ref }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+
+      - name: Upload build artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tvos-build-logs
+          path: |
+            build/**/*.log
+            ~/Library/Logs/gym/**
+          retention-days: 5
+
+      - name: Deployment summary
+        if: success()
+        run: |
+          echo "## tvOS Deployment Successful!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build Number**: ${{ steps.build_number.outputs.build_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            echo "- **Distribution**: External TestFlight Release" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Distribution**: Internal TestFlight Build" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Cleanup Keychain
+        if: always()
+        run: security delete-keychain build.keychain || true
