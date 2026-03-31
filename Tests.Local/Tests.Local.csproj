@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NUnit" Version="3.14.*" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.*" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.*" />
+  </ItemGroup>
+
+  <!-- Include the Core source files directly (no Unity dependency) -->
+  <ItemGroup>
+    <Compile Include="../Assets/Game/Core/**/*.cs" />
+    <Compile Include="../Assets/Tests/EditMode/SnakeSimulationTests.cs" />
+  </ItemGroup>
+
+</Project>
