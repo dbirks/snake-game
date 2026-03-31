@@ -1,0 +1,17 @@
+{
+    "name": "Game.UnityGlue",
+    "rootNamespace": "SnakeGame.UnityGlue",
+    "references": [
+        "Game.Core",
+        "Game.Input"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
