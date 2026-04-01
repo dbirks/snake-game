@@ -24,9 +24,20 @@ This runs the EditMode tests against the Core simulation using `dotnet test`. No
 
 ## CI/CD
 
-- **test.yml** — EditMode + PlayMode tests on Linux via GameCI
+- **test.yml** — EditMode + PlayMode tests on Linux using `unityci/editor` container directly
 - **deploy.yml** — Unity build → Xcode project → Fastlane → TestFlight (macOS runner)
-- **activation.yml** — One-time workflow to get Unity license `.ulf` file
+
+### Unity License in CI
+
+**Do NOT use GameCI's built-in license handling** (`game-ci/unity-test-runner`, etc.).
+GameCI v4 doesn't support Unity 6's new `UnityEntitlementLicense.xml` format, and Unity
+killed manual `.alf`→`.ulf` activation for Personal licenses. Instead, we:
+1. Run inside the `unityci/editor` Docker container directly
+2. Activate via `Unity.Licensing.Client --activate-all --include-personal --username --password`
+3. Call `unity-editor -runTests` directly
+
+This requires `UNITY_EMAIL` and `UNITY_PASSWORD` secrets (no `UNITY_LICENSE` needed
+for activation, though it's still set as a secret). Docker image: `ubuntu-6000.3.11f1-base-3.2.2`.
 
 ## Fastlane
 
