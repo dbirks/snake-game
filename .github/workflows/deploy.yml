@@ -92,6 +92,17 @@ jobs:
           echo "Build output:"
           ls -la build/tvOS/ 2>/dev/null || echo "No build output found"
 
+      - name: Set export compliance in Info.plist
+        run: |
+          # Set ITSAppUsesNonExemptEncryption=false so TestFlight doesn't
+          # require manual compliance answers for each build
+          PLIST=$(find build/tvOS -name "Info.plist" -path "*/Unity-iPhone/*" | head -1)
+          if [ -n "$PLIST" ]; then
+            /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" "$PLIST" 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c "Set :ITSAppUsesNonExemptEncryption false" "$PLIST"
+            echo "Set ITSAppUsesNonExemptEncryption=false in $PLIST"
+          fi
+
       - name: Fix tvOS image assets (remove alpha channels)
         run: |
           # tvOS requires opaque images for Top Shelf, icons, and launch images.

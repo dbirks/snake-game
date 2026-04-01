@@ -27,6 +27,7 @@ namespace SnakeGame.Editor
                 UnityEditor.Build.NamedBuildTarget.tvOS, "dev.birks.snakegame");
             PlayerSettings.productName = "Snake Game";
             PlayerSettings.companyName = "Birks";
+
             Debug.Log("[BuildScript] Set bundle ID to dev.birks.snakegame");
 
             // Ensure a main scene exists
