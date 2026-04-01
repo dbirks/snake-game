@@ -163,17 +163,24 @@ platform :ios do
 
     is_external_release = ENV['GITHUB_REF'] && ENV['GITHUB_REF'].start_with?('refs/tags/v')
 
+    # Upload build to App Store Connect
     upload_to_testflight(
       skip_waiting_for_build_processing: false,
-      skip_submission: false,
+      skip_submission: !is_external_release,
       distribute_external: is_external_release,
-      groups: is_external_release ? ["Pre-release"] : ["internal"],
+      groups: is_external_release ? ["Pre-release"] : nil,
       changelog: is_external_release ? "New version: #{ENV['GITHUB_REF_NAME']}" : "Internal build from CI",
       notify_external_testers: is_external_release,
       uses_non_exempt_encryption: false,
       beta_app_description: "Snake game for Apple TV — free-flowing snake with flat orange aesthetic",
       beta_app_feedback_email: "david@birks.dev"
     )
+
+    # Internal builds are auto-available to internal testers once processed.
+    # No need to explicitly distribute to an internal group.
+    unless is_external_release
+      puts "Build uploaded and processing. Internal testers will see it automatically."
+    end
   end
 
   # ============================================
