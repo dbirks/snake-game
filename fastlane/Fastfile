@@ -128,13 +128,11 @@ platform :ios do
       scheme: "Unity-iPhone",
       configuration: "Release",
       export_method: "app-store",
-      codesigning_identity: "Apple Distribution",
       clean: true,
       include_bitcode: false,
       include_symbols: true,
       destination: "generic/platform=tvOS",
       xcargs: [
-        "DEVELOPMENT_TEAM=64U9465SFY",
         (ENV['CI'] ? "OTHER_CODE_SIGN_FLAGS='--keychain build.keychain'" : ""),
         "-allowProvisioningUpdates"
       ].reject(&:empty?).join(" "),
