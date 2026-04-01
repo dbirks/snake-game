@@ -116,16 +116,16 @@ jobs:
           BUILD_NUMBER=$(date +%Y%m%d%H%M%S)
           echo "build_number=${BUILD_NUMBER}" >> $GITHUB_OUTPUT
 
-      - name: Select Xcode and ensure tvOS platform
+      - name: Select Xcode and install tvOS platform
         run: |
-          # Re-select Xcode (Unity install may change developer dir)
           sudo xcode-select -s /Applications/Xcode_16.2.app || sudo xcode-select -s /Applications/Xcode_16.app
           xcodebuild -version
-          # Download tvOS platform if not present
-          xcodebuild -showsdks 2>/dev/null | grep -i tvos || xcodebuild -downloadPlatform tvOS
+          # Always download tvOS platform — even if SDK shows in showsdks,
+          # it may not be registered as an installed platform
+          echo "Downloading tvOS platform..."
+          xcodebuild -downloadPlatform tvOS 2>&1 || true
+          echo "Verifying tvOS SDK:"
           xcodebuild -showsdks | grep tvos
-          # Verify the destination works for our project
-          xcodebuild -showdestinations -scheme Unity-iPhone -project build/tvOS/Unity-iPhone.xcodeproj 2>&1 | grep -i "tvOS\|generic" | head -5
 
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
