@@ -53,25 +53,38 @@ namespace SnakeGame.Tests.EditMode
         }
 
         [Test]
-        public void Tick_TurnLeft_HeadingIncreases()
+        public void Tick_SteerUp_HeadingRotatesToward90Degrees()
         {
             var sim = new SnakeSimulation(seed: 123);
-            var startAngle = sim.State.HeadingAngle;
+            // Snake starts facing right (heading=0). Steer up (90 degrees).
+            sim.Tick(FixedDt, InputCommand.FromStick(0f, 1f));
 
-            sim.Tick(FixedDt, InputCommand.TurnLeft);
-
-            Assert.Greater(sim.State.HeadingAngle, startAngle);
+            Assert.Greater(sim.State.HeadingAngle, 0f,
+                "Heading should increase toward 90 degrees (up)");
         }
 
         [Test]
-        public void Tick_TurnRight_HeadingDecreases()
+        public void Tick_SteerDown_HeadingRotatesTowardNeg90()
         {
             var sim = new SnakeSimulation(seed: 123);
-            var startAngle = sim.State.HeadingAngle;
+            // Snake starts facing right (heading=0). Steer down (-90 degrees).
+            sim.Tick(FixedDt, InputCommand.FromStick(0f, -1f));
 
-            sim.Tick(FixedDt, InputCommand.TurnRight);
+            Assert.Less(sim.State.HeadingAngle, 0f,
+                "Heading should decrease toward -90 degrees (down)");
+        }
 
-            Assert.Less(sim.State.HeadingAngle, startAngle);
+        [Test]
+        public void Tick_AnalogSteer_SmoothlyApproachesTarget()
+        {
+            var sim = new SnakeSimulation(seed: 123);
+            // Steer straight up for many ticks
+            for (int i = 0; i < 60; i++)
+                sim.Tick(FixedDt, InputCommand.FromStick(0f, 1f));
+
+            // Should be close to 90 degrees (PI/2)
+            Assert.AreEqual(System.Math.PI / 2f, sim.State.HeadingAngle, 0.1f,
+                "After many ticks steering up, heading should be ~90 degrees");
         }
 
         [Test]

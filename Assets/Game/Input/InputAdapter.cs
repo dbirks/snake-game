@@ -6,11 +6,10 @@ namespace SnakeGame.Input
 {
     /// <summary>
     /// Converts Input System events into simulation InputCommands.
-    /// Supports:
-    /// - Apple TV Siri Remote (touch surface → dpad)
-    /// - MFi gamepads (left stick + dpad)
-    /// - Bluetooth controllers (Nintendo Switch Pro, PS5, Xbox — all map to Gamepad)
-    /// - Keyboard (WASD) for editor testing
+    /// Supports full 360-degree analog stick input:
+    /// - Gamepad left stick / dpad → full analog direction
+    /// - Siri Remote touch surface → dpad-style direction
+    /// - Keyboard WASD → 8-way direction
     /// </summary>
     public class InputAdapter : MonoBehaviour
     {
@@ -23,40 +22,30 @@ namespace SnakeGame.Input
             ConfigureTvOSRemote();
         }
 
-        /// <summary>
-        /// Configure Apple TV Siri Remote behavior.
-        /// Must be fully playable with Siri Remote alone (Apple requirement).
-        /// </summary>
         private void ConfigureTvOSRemote()
         {
 #if UNITY_TVOS
-            // Allow the Menu button to exit to home (Apple requirement for tvOS)
             UnityEngine.tvOS.Remote.allowExitToHome = true;
-            // Use relative swipe values (not absolute touch position)
             UnityEngine.tvOS.Remote.reportAbsoluteDpadValues = false;
-            // Enable touch input from the Siri Remote surface
             UnityEngine.tvOS.Remote.touchesEnabled = true;
 #endif
         }
 
-        // Called by PlayerInput component via SendMessages
-        // Fires for: gamepad left stick, gamepad dpad, Siri Remote swipes, keyboard WASD
+        // Called by PlayerInput via SendMessages — receives gamepad stick,
+        // dpad, Siri Remote swipes, and keyboard WASD
         public void OnMove(InputValue value)
         {
             var v = value.Get<Vector2>();
-            if (v.x < -deadzone)
-                _pendingCommand = InputCommand.TurnLeft;
-            else if (v.x > deadzone)
-                _pendingCommand = InputCommand.TurnRight;
+            if (v.sqrMagnitude > deadzone * deadzone)
+                _pendingCommand = InputCommand.FromStick(v.x, v.y);
+            else
+                _pendingCommand = InputCommand.None;
         }
 
-        /// <summary>
-        /// Consume and reset the pending command. Called once per simulation tick.
-        /// </summary>
         public InputCommand ConsumeCommand()
         {
             var cmd = _pendingCommand;
-            _pendingCommand = InputCommand.None;
+            // Don't reset — keep steering while stick is held
             return cmd;
         }
     }

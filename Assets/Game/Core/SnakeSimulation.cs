@@ -64,11 +64,28 @@ namespace SnakeGame.Core
         {
             if (!State.IsAlive) return;
 
-            // Apply turning
-            if (command == InputCommand.TurnLeft)
-                State.HeadingAngle += TurnRate * dt;
-            else if (command == InputCommand.TurnRight)
-                State.HeadingAngle -= TurnRate * dt;
+            // Steer toward the stick direction (360-degree free-flowing movement)
+            if (command.HasAnalogInput)
+            {
+                // Calculate target angle from stick input
+                float targetAngle = (float)Math.Atan2(command.StickY, command.StickX);
+
+                // Smoothly rotate toward target using shortest path
+                float angleDiff = targetAngle - State.HeadingAngle;
+
+                // Normalize to [-PI, PI]
+                while (angleDiff > Math.PI) angleDiff -= 2f * (float)Math.PI;
+                while (angleDiff < -Math.PI) angleDiff += 2f * (float)Math.PI;
+
+                // Apply turn rate limit for smooth steering
+                float maxTurn = TurnRate * dt;
+                if (angleDiff > maxTurn)
+                    State.HeadingAngle += maxTurn;
+                else if (angleDiff < -maxTurn)
+                    State.HeadingAngle -= maxTurn;
+                else
+                    State.HeadingAngle = targetAngle;
+            }
 
             // Update direction from heading
             State.Direction = new Vector2F(
