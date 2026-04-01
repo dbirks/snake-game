@@ -70,13 +70,22 @@ jobs:
 
       - name: Install Unity with tvOS module
         run: |
-          # Install Unity version with tvOS support
+          # 6000.3.11f1 is not in the official release list, so we need the changeset hash
+          # Install using the unityhub CLI with changeset
           /Applications/Unity\ Hub.app/Contents/MacOS/Unity\ Hub -- --headless install \
             --version ${{ env.UNITY_VERSION }} \
+            --changeset 3000ef702840 \
             --module appletv \
-            --childModules
+            --childModules || true
+          # Wait for install to settle
+          sleep 10
           # Find the Unity editor path
           UNITY_PATH=$(find /Applications/Unity/Hub/Editor -name "Unity" -type f -path "*/Unity.app/Contents/MacOS/Unity" 2>/dev/null | head -1)
+          if [ -z "$UNITY_PATH" ]; then
+            echo "Unity not found, listing what's available:"
+            ls -la /Applications/Unity/Hub/Editor/ 2>/dev/null || echo "No editors installed"
+            exit 1
+          fi
           echo "UNITY_EDITOR=$UNITY_PATH" >> $GITHUB_ENV
           echo "Found Unity at: $UNITY_PATH"
 
