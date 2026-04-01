@@ -18,6 +18,8 @@ namespace SnakeGame.UnityGlue
         [SerializeField] private InputAdapter inputAdapter;
 
         private SnakeSimulation _simulation;
+        private GUIStyle _scoreStyle;
+        private GUIStyle _gameOverStyle;
 
         public SnakeSimulation Simulation => _simulation;
 
@@ -38,6 +40,10 @@ namespace SnakeGame.UnityGlue
                 : InputCommand.None;
 
             _simulation.Tick(Time.fixedDeltaTime, command);
+
+            // Auto-restart on death after a short delay
+            if (!_simulation.State.IsAlive && _simulation.State.TickCount % 180 == 0)
+                RestartGame();
         }
 
         private void LateUpdate()
@@ -46,9 +52,47 @@ namespace SnakeGame.UnityGlue
             snakeRenderer.Render(_simulation.State);
         }
 
+        private void OnGUI()
+        {
+            if (_simulation == null) return;
+
+            if (_scoreStyle == null)
+            {
+                _scoreStyle = new GUIStyle(GUI.skin.label)
+                {
+                    fontSize = 48,
+                    fontStyle = FontStyle.Bold,
+                    alignment = TextAnchor.UpperRight
+                };
+                _scoreStyle.normal.textColor = new Color(1f, 1f, 1f, 0.8f);
+            }
+
+            if (_gameOverStyle == null)
+            {
+                _gameOverStyle = new GUIStyle(GUI.skin.label)
+                {
+                    fontSize = 72,
+                    fontStyle = FontStyle.Bold,
+                    alignment = TextAnchor.MiddleCenter
+                };
+                _gameOverStyle.normal.textColor = new Color(1f, 0.3f, 0.3f, 0.9f);
+            }
+
+            // Score display
+            GUI.Label(new Rect(Screen.width - 250, 20, 230, 60),
+                $"Score: {_simulation.State.Score}", _scoreStyle);
+
+            // Game over message
+            if (!_simulation.State.IsAlive)
+            {
+                GUI.Label(new Rect(0, Screen.height / 2 - 50, Screen.width, 100),
+                    "GAME OVER", _gameOverStyle);
+            }
+        }
+
         public void RestartGame()
         {
-            _simulation = new SnakeSimulation(randomSeed);
+            _simulation = new SnakeSimulation(Random.Range(0, int.MaxValue));
         }
     }
 }

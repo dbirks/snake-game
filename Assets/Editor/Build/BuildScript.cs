@@ -30,6 +30,10 @@ namespace SnakeGame.Editor
 
             Debug.Log("[BuildScript] Set bundle ID to dev.birks.snakegame");
 
+            // Ensure required shaders are included in the build
+            // (Shader.Find returns null on tvOS if the shader is stripped)
+            EnsureShadersIncluded();
+
             // Ensure a main scene exists
             if (!File.Exists(MainScenePath))
             {
@@ -75,6 +79,48 @@ namespace SnakeGame.Editor
 
             Debug.Log($"[BuildScript] Build succeeded! Output: {TvOSOutputPath}");
             Debug.Log($"[BuildScript] Size: {result.summary.totalSize} bytes");
+        }
+
+        /// <summary>
+        /// Add shaders to the Always Included Shaders list in Graphics Settings
+        /// so they aren't stripped from the build.
+        /// </summary>
+        private static void EnsureShadersIncluded()
+        {
+            var graphicsSettings = AssetDatabase.LoadAssetAtPath<UnityEngine.Rendering.GraphicsSettings>(
+                "ProjectSettings/GraphicsSettings.asset");
+
+            string[] shaderNames = { "Unlit/Color", "Sprites/Default", "UI/Default" };
+            foreach (var name in shaderNames)
+            {
+                var shader = Shader.Find(name);
+                if (shader != null)
+                {
+                    // Force the shader to be referenced so it's included in the build
+                    var so = new SerializedObject(
+                        AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/GraphicsSettings.asset")[0]);
+                    var arrayProp = so.FindProperty("m_AlwaysIncludedShaders");
+
+                    bool found = false;
+                    for (int i = 0; i < arrayProp.arraySize; i++)
+                    {
+                        if (arrayProp.GetArrayElementAtIndex(i).objectReferenceValue == shader)
+                        {
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    if (!found)
+                    {
+                        arrayProp.arraySize++;
+                        arrayProp.GetArrayElementAtIndex(arrayProp.arraySize - 1)
+                            .objectReferenceValue = shader;
+                        so.ApplyModifiedProperties();
+                        Debug.Log($"[BuildScript] Added shader '{name}' to Always Included Shaders");
+                    }
+                }
+            }
         }
 
         /// <summary>
