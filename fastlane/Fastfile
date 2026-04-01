@@ -171,8 +171,8 @@ platform :ios do
       changelog: is_external_release ? "New version: #{ENV['GITHUB_REF_NAME']}" : "Internal build from CI",
       notify_external_testers: is_external_release,
       uses_non_exempt_encryption: false,
-      beta_app_description: is_external_release ? "Snake game for Apple TV" : nil,
-      beta_app_feedback_email: is_external_release ? "david@dbirks.com" : nil
+      beta_app_description: "Snake game for Apple TV — free-flowing snake with flat orange aesthetic",
+      beta_app_feedback_email: "david@birks.dev"
     )
   end
 
