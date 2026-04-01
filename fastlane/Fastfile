@@ -89,7 +89,9 @@ platform :ios do
 
     # The Unity build script outputs an Xcode project to build/tvOS/
     # This lane assumes that project already exists (built by GameCI or local Unity)
-    xcode_project = "build/tvOS/Unity-iPhone.xcodeproj"
+    # Use absolute path from project root to avoid working directory issues
+    project_root = ENV['GITHUB_WORKSPACE'] || File.expand_path("../", __dir__)
+    xcode_project = File.join(project_root, "build/tvOS/Unity-iPhone.xcodeproj")
 
     unless File.exist?(xcode_project)
       UI.user_error!("Xcode project not found at #{xcode_project}. Run Unity build first!")
