@@ -17,65 +17,99 @@ env:
   RUBY_VERSION: '3.2'
 
 jobs:
-  # Run tests first (on cheap Linux runners)
+  # Run EditMode tests first (cheap Linux runner, same approach as test.yml)
   test:
     name: Run Tests
     runs-on: ubuntu-latest
+    container:
+      image: unityci/editor:ubuntu-6000.3.11f1-base-3.2.2
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/cache@v4
-        with:
-          path: Library
-          key: Library-Test-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
-          restore-keys: Library-
-
-      - uses: game-ci/unity-test-runner@v4
+      - name: Activate Unity license
         env:
-          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
-        with:
-          testMode: EditMode
-          githubToken: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          /opt/unity/Editor/Data/Resources/Licensing/Client/Unity.Licensing.Client \
+            --activate-all \
+            --include-personal \
+            --username "$UNITY_EMAIL" \
+            --password "$UNITY_PASSWORD"
 
-  # Build Unity → Xcode project, then archive and upload (macOS runner)
-  build-and-deploy:
-    name: Build & Deploy to TestFlight
+      - name: Run EditMode tests
+        run: |
+          unity-editor \
+            -batchmode \
+            -nographics \
+            -runTests \
+            -testPlatform EditMode \
+            -testCategory Core \
+            -testResults /results/editmode-results.xml \
+            -projectPath . \
+            -logFile /dev/stdout \
+            -quit || true
+
+  # Build Unity → Xcode project on Linux, then sign/upload on macOS
+  build-xcode-project:
+    name: Build Xcode Project
     needs: [test]
-    runs-on: macos-15
-    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    container:
+      image: unityci/editor:ubuntu-6000.3.11f1-base-3.2.2
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+
+      - name: Activate Unity license
+        env:
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        run: |
+          /opt/unity/Editor/Data/Resources/Licensing/Client/Unity.Licensing.Client \
+            --activate-all \
+            --include-personal \
+            --username "$UNITY_EMAIL" \
+            --password "$UNITY_PASSWORD"
+
+      - name: Build tvOS Xcode project
+        run: |
+          unity-editor \
+            -batchmode \
+            -nographics \
+            -quit \
+            -executeMethod SnakeGame.Editor.BuildScript.BuildTvOS \
+            -projectPath . \
+            -logFile /dev/stdout
+
+      - name: Upload Xcode project artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tvOS-xcode-project
+          path: build/tvOS/
+          retention-days: 1
+
+  # Sign, archive, and upload to TestFlight (macOS required for Xcode)
+  deploy-testflight:
+    name: Deploy to TestFlight
+    needs: [build-xcode-project]
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Download Xcode project
+        uses: actions/download-artifact@v4
+        with:
+          name: tvOS-xcode-project
+          path: build/tvOS/
 
       - name: Generate build number
         id: build_number
         run: |
           BUILD_NUMBER=$(date +%Y%m%d%H%M%S)
           echo "build_number=${BUILD_NUMBER}" >> $GITHUB_OUTPUT
-
-      # GameCI builds Unity project and generates Xcode project for tvOS
-      - name: Cache Unity Library
-        uses: actions/cache@v4
-        with:
-          path: Library
-          key: Library-tvOS-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
-          restore-keys: |
-            Library-tvOS-
-            Library-
-
-      - name: Build Unity tvOS Xcode project
-        uses: game-ci/unity-builder@v4
-        env:
-          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
-        with:
-          targetPlatform: tvOS
-          buildMethod: SnakeGame.Editor.BuildScript.BuildTvOS
 
       - name: Select Xcode 16
         run: |
