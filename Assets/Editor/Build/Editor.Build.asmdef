@@ -1,7 +1,10 @@
 {
     "name": "Editor.Build",
     "rootNamespace": "SnakeGame.Editor",
-    "references": [],
+    "references": [
+        "Game.Core",
+        "Game.UnityGlue"
+    ],
     "includePlatforms": [
         "Editor"
     ],
