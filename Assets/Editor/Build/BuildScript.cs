@@ -22,6 +22,13 @@ namespace SnakeGame.Editor
         {
             Debug.Log("[BuildScript] Starting tvOS build...");
 
+            // Set bundle ID and product name for tvOS
+            PlayerSettings.SetApplicationIdentifier(
+                UnityEditor.Build.NamedBuildTarget.tvOS, "dev.birks.snakegame");
+            PlayerSettings.productName = "Snake Game";
+            PlayerSettings.companyName = "Birks";
+            Debug.Log("[BuildScript] Set bundle ID to dev.birks.snakegame");
+
             // Ensure a main scene exists
             if (!File.Exists(MainScenePath))
             {
