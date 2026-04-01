@@ -64,37 +64,43 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Cache the Unity installation to avoid 15-25 min install on every run
-      - name: Cache Unity installation
-        id: cache-unity
+      # Cache Unity .pkg installers to skip re-downloading (~5GB)
+      - name: Cache Unity installers
+        id: cache-unity-pkg
         uses: actions/cache@v4
         with:
-          path: /Applications/Unity/Hub/Editor/${{ env.UNITY_VERSION }}
-          key: unity-editor-${{ env.UNITY_VERSION }}-tvos-macos
+          path: /tmp/unity-installers
+          key: unity-pkg-${{ env.UNITY_VERSION }}-tvos
 
-      - name: Install Unity Hub
-        if: steps.cache-unity.outputs.cache-hit != 'true'
-        run: brew install --cask unity-hub
-
-      - name: Install Unity with tvOS module
-        if: steps.cache-unity.outputs.cache-hit != 'true'
+      - name: Download Unity installers
+        if: steps.cache-unity-pkg.outputs.cache-hit != 'true'
         run: |
-          # Give Unity Hub a moment to initialize
-          sleep 5
-          "/Applications/Unity Hub.app/Contents/MacOS/Unity Hub" -- --headless install \
-            --version ${{ env.UNITY_VERSION }} \
-            --changeset ${{ env.UNITY_CHANGESET }} \
-            --module appletv \
-            --childModules
-          echo "Unity installed at:"
-          ls -la "/Applications/Unity/Hub/Editor/${{ env.UNITY_VERSION }}/"
+          mkdir -p /tmp/unity-installers
+          echo "Downloading Unity Editor..."
+          curl -L -o /tmp/unity-installers/Unity.pkg \
+            "https://download.unity3d.com/download_unity/${{ env.UNITY_CHANGESET }}/MacEditorInstaller/Unity.pkg"
+          echo "Downloading tvOS support module..."
+          curl -L -o /tmp/unity-installers/UnitySetup-AppleTV.pkg \
+            "https://download.unity3d.com/download_unity/${{ env.UNITY_CHANGESET }}/MacEditorTargetInstaller/UnitySetup-AppleTV-Support-for-Editor-${{ env.UNITY_VERSION }}.pkg"
+          ls -lh /tmp/unity-installers/
+
+      - name: Install Unity
+        run: |
+          echo "Installing Unity Editor..."
+          sudo installer -pkg /tmp/unity-installers/Unity.pkg -target /
+          echo "Installing tvOS support..."
+          sudo installer -pkg /tmp/unity-installers/UnitySetup-AppleTV.pkg -target /
+          # Find the installed Unity editor
+          UNITY_PATH=$(find /Applications/Unity -name "Unity" -type f -path "*/Unity.app/Contents/MacOS/Unity" 2>/dev/null | head -1)
+          echo "UNITY_EDITOR=$UNITY_PATH" >> $GITHUB_ENV
+          echo "Unity installed at: $UNITY_PATH"
 
       - name: Activate Unity license
         env:
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         run: |
-          LICENSING_CLIENT=$(find "/Applications/Unity/Hub/Editor/${{ env.UNITY_VERSION }}" -name "Unity.Licensing.Client" -type f 2>/dev/null | head -1)
+          LICENSING_CLIENT=$(find /Applications/Unity -name "Unity.Licensing.Client" -type f 2>/dev/null | head -1)
           echo "Found licensing client at: $LICENSING_CLIENT"
           "$LICENSING_CLIENT" \
             --activate-all \
@@ -104,7 +110,6 @@ jobs:
 
       - name: Build tvOS Xcode project
         run: |
-          UNITY_EDITOR="/Applications/Unity/Hub/Editor/${{ env.UNITY_VERSION }}/Unity.app/Contents/MacOS/Unity"
           "$UNITY_EDITOR" \
             -batchmode \
             -nographics \
