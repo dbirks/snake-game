@@ -82,6 +82,9 @@ platform :ios do
     # Verify certificate installation
     if ENV['CI']
       sh("security find-identity -v -p codesigning build.keychain")
+      # Ensure tvOS platform is available (must be done right before xcodebuild)
+      sh("xcodebuild -downloadPlatform tvOS 2>&1 || true")
+      sh("xcodebuild -showsdks | grep tvos")
     end
 
     # Timestamp-based build number (same pattern as CAWCAW)
