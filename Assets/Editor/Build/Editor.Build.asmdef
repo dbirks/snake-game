@@ -3,7 +3,9 @@
     "rootNamespace": "SnakeGame.Editor",
     "references": [
         "Game.Core",
-        "Game.UnityGlue"
+        "Game.UnityGlue",
+        "Game.Input",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [
         "Editor"
