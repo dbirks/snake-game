@@ -107,6 +107,28 @@ namespace SnakeGame.Editor
             rendererObj.transform.SetParent(gameObj.transform);
             rendererObj.AddComponent<SnakeRenderer>();
 
+            // Input adapter (child) with PlayerInput
+            var inputObj = new GameObject("Input");
+            inputObj.transform.SetParent(gameObj.transform);
+            var inputAdapter = inputObj.AddComponent<SnakeGame.Input.InputAdapter>();
+
+            // Load and assign Input Actions asset
+            var inputActions = AssetDatabase.LoadAssetAtPath<UnityEngine.InputSystem.InputActionAsset>(
+                "Assets/Game/Input/SnakeInputActions.inputactions");
+            if (inputActions != null)
+            {
+                var playerInput = inputObj.AddComponent<UnityEngine.InputSystem.PlayerInput>();
+                playerInput.actions = inputActions;
+                playerInput.defaultActionMap = "Gameplay";
+                playerInput.notificationBehavior =
+                    UnityEngine.InputSystem.PlayerNotifications.SendMessages;
+                Debug.Log("[BuildScript] Wired up Input Actions asset");
+            }
+            else
+            {
+                Debug.LogWarning("[BuildScript] SnakeInputActions.inputactions not found");
+            }
+
             // GameManager wired up
             var manager = gameObj.AddComponent<GameManager>();
 
@@ -114,6 +136,7 @@ namespace SnakeGame.Editor
             var so = new SerializedObject(manager);
             so.FindProperty("snakeRenderer").objectReferenceValue =
                 rendererObj.GetComponent<SnakeRenderer>();
+            so.FindProperty("inputAdapter").objectReferenceValue = inputAdapter;
             so.ApplyModifiedProperties();
 
             // Save scene
