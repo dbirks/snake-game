@@ -19,43 +19,9 @@ env:
   UNITY_CHANGESET: '3000ef702840'
 
 jobs:
-  # Run EditMode tests first (cheap Linux runner)
-  test:
-    name: Run Tests
-    runs-on: ubuntu-latest
-    container:
-      image: unityci/editor:ubuntu-6000.3.11f1-base-3.2.2
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Activate Unity license
-        env:
-          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
-        run: |
-          /opt/unity/Editor/Data/Resources/Licensing/Client/Unity.Licensing.Client \
-            --activate-all \
-            --include-personal \
-            --username "$UNITY_EMAIL" \
-            --password "$UNITY_PASSWORD"
-
-      - name: Run EditMode tests
-        run: |
-          unity-editor \
-            -batchmode \
-            -nographics \
-            -runTests \
-            -testPlatform EditMode \
-            -testCategory Core \
-            -testResults /results/editmode-results.xml \
-            -projectPath . \
-            -logFile /dev/stdout \
-            -quit || true
-
-  # Build + sign + upload on macOS (tvOS requires macOS + Xcode)
+  # Tests run separately via test.yml — this workflow focuses on build + deploy
   build-and-deploy:
     name: Build & Deploy to TestFlight
-    # needs: [test]  # temporarily disabled — container pull failing
     runs-on: macos-15
     timeout-minutes: 90
     steps:
