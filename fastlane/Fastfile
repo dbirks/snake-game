@@ -104,9 +104,24 @@ platform :ios do
     )
 
     # Unity generates two targets: Unity-iPhone (app) and UnityFramework (framework).
-    # Only the app target needs a provisioning profile. First, update the Xcode project
-    # to set the correct bundle ID and signing settings per-target.
-    sh("cd '#{project_root}' && /usr/libexec/PlistBuddy -c 'Set :CFBundleIdentifier dev.birks.snakegame' build/tvOS/Unity-iPhone/Info.plist 2>/dev/null || true")
+    # Set signing per-target: manual for the app, automatic for the framework.
+    update_code_signing_settings(
+      path: xcode_project,
+      use_automatic_signing: false,
+      team_id: "64U9465SFY",
+      bundle_identifier: "dev.birks.snakegame",
+      code_sign_identity: "Apple Distribution",
+      profile_name: "match AppStore dev.birks.snakegame tvos",
+      targets: ["Unity-iPhone"]
+    )
+
+    # UnityFramework is a framework — set automatic signing, no profile
+    update_code_signing_settings(
+      path: xcode_project,
+      use_automatic_signing: true,
+      team_id: "64U9465SFY",
+      targets: ["UnityFramework"]
+    )
 
     build_app(
       project: xcode_project,
@@ -120,10 +135,6 @@ platform :ios do
       destination: "generic/platform=tvOS",
       xcargs: [
         "DEVELOPMENT_TEAM=64U9465SFY",
-        # Per-target signing: manual for the app, automatic for the framework
-        "'CODE_SIGN_STYLE[sdk=appletvos*]=Manual'",
-        "'CODE_SIGN_IDENTITY[sdk=appletvos*]=Apple Distribution'",
-        "'PROVISIONING_PROFILE_SPECIFIER[sdk=appletvos*]=match AppStore dev.birks.snakegame tvos'",
         (ENV['CI'] ? "OTHER_CODE_SIGN_FLAGS='--keychain build.keychain'" : ""),
         "-allowProvisioningUpdates"
       ].reject(&:empty?).join(" "),
