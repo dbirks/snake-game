@@ -15,9 +15,10 @@ on:
 
 env:
   RUBY_VERSION: '3.2'
+  UNITY_VERSION: '6000.3.11f1'
 
 jobs:
-  # Run EditMode tests first (cheap Linux runner, same approach as test.yml)
+  # Run EditMode tests first (cheap Linux runner)
   test:
     name: Run Tests
     runs-on: ubuntu-latest
@@ -50,22 +51,43 @@ jobs:
             -logFile /dev/stdout \
             -quit || true
 
-  # Build Unity → Xcode project on Linux, then sign/upload on macOS
-  build-xcode-project:
-    name: Build Xcode Project
+  # Build + sign + upload all on macOS (tvOS requires macOS + Xcode)
+  build-and-deploy:
+    name: Build & Deploy to TestFlight
     needs: [test]
-    runs-on: ubuntu-latest
-    container:
-      image: unityci/editor:ubuntu-6000.3.11f1-base-3.2.2
+    runs-on: macos-15
+    timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Unity Hub
+        run: |
+          brew install --cask unity-hub
+          sleep 5
+
+      - name: Install Unity with tvOS module
+        run: |
+          # Install Unity version with tvOS support
+          /Applications/Unity\ Hub.app/Contents/MacOS/Unity\ Hub -- --headless install \
+            --version ${{ env.UNITY_VERSION }} \
+            --module appletv \
+            --childModules
+          # Find the Unity editor path
+          UNITY_PATH=$(find /Applications/Unity/Hub/Editor -name "Unity" -type f -path "*/Unity.app/Contents/MacOS/Unity" 2>/dev/null | head -1)
+          echo "UNITY_EDITOR=$UNITY_PATH" >> $GITHUB_ENV
+          echo "Found Unity at: $UNITY_PATH"
 
       - name: Activate Unity license
         env:
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         run: |
-          /opt/unity/Editor/Data/Resources/Licensing/Client/Unity.Licensing.Client \
+          # Find the licensing client
+          LICENSING_CLIENT=$(find /Applications/Unity/Hub/Editor -name "Unity.Licensing.Client" -type f 2>/dev/null | head -1)
+          "$LICENSING_CLIENT" \
             --activate-all \
             --include-personal \
             --username "$UNITY_EMAIL" \
@@ -73,37 +95,14 @@ jobs:
 
       - name: Build tvOS Xcode project
         run: |
-          unity-editor \
+          "$UNITY_EDITOR" \
             -batchmode \
             -nographics \
             -quit \
             -executeMethod SnakeGame.Editor.BuildScript.BuildTvOS \
             -projectPath . \
-            -logFile /dev/stdout
-
-      - name: Upload Xcode project artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: tvOS-xcode-project
-          path: build/tvOS/
-          retention-days: 1
-
-  # Sign, archive, and upload to TestFlight (macOS required for Xcode)
-  deploy-testflight:
-    name: Deploy to TestFlight
-    needs: [build-xcode-project]
-    runs-on: macos-15
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Download Xcode project
-        uses: actions/download-artifact@v4
-        with:
-          name: tvOS-xcode-project
-          path: build/tvOS/
+            -logFile -
+          ls -la build/tvOS/
 
       - name: Generate build number
         id: build_number
