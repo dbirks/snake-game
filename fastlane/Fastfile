@@ -115,11 +115,12 @@ platform :ios do
       targets: ["Unity-iPhone"]
     )
 
-    # UnityFramework is a framework — set automatic signing, no profile
+    # UnityFramework is an embedded framework — disable code signing entirely
+    # (it gets re-signed as part of the app bundle during archive)
     update_code_signing_settings(
       path: xcode_project,
-      use_automatic_signing: true,
-      team_id: "64U9465SFY",
+      use_automatic_signing: false,
+      code_sign_identity: "",
       targets: ["UnityFramework"]
     )
 
