@@ -132,7 +132,7 @@ platform :ios do
       clean: true,
       include_bitcode: false,
       include_symbols: true,
-      destination: "generic/platform=tvOS,name=Any tvOS Device",
+      destination: "generic/platform=tvOS",
       sdk: "appletvos",
       xcargs: [
         (ENV['CI'] ? "OTHER_CODE_SIGN_FLAGS='--keychain build.keychain'" : ""),
