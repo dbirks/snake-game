@@ -102,9 +102,15 @@ jobs:
         run: |
           sudo xcode-select -s /Applications/Xcode_16.2.app || sudo xcode-select -s /Applications/Xcode_16.app
           xcodebuild -version
-          # Install tvOS platform SDK if not present
-          xcodebuild -showsdks | grep tvos || xcodebuild -downloadPlatform tvOS
-          xcodebuild -showsdks | grep tvos
+          # Install tvOS platform SDK — required on macOS 15 runners
+          echo "Available SDKs before install:"
+          xcodebuild -showsdks 2>/dev/null | grep -i tvos || echo "No tvOS SDK found"
+          echo "Downloading tvOS platform..."
+          xcodebuild -downloadPlatform tvOS || true
+          echo "Available SDKs after install:"
+          xcodebuild -showsdks 2>/dev/null | grep -i tvos || echo "Still no tvOS SDK"
+          # Verify we can target tvOS
+          xcodebuild -showdestinations -scheme Unity-iPhone -project build/tvOS/Unity-iPhone.xcodeproj 2>/dev/null | grep -i tvos | head -3 || echo "No tvOS destinations found"
 
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
