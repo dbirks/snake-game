@@ -110,6 +110,10 @@ jobs:
 
       - name: Build tvOS Xcode project
         run: |
+          # Move test assemblies out of Assets to prevent compilation errors
+          # (test packages may not be available in the build-only Unity install)
+          mkdir -p /tmp/tests-backup
+          mv Assets/Tests /tmp/tests-backup/ || true
           "$UNITY_EDITOR" \
             -batchmode \
             -nographics \
@@ -117,6 +121,8 @@ jobs:
             -executeMethod SnakeGame.Editor.BuildScript.BuildTvOS \
             -projectPath "$GITHUB_WORKSPACE" \
             -logFile -
+          # Restore tests
+          mv /tmp/tests-backup/Tests Assets/ || true
           echo "Build output:"
           ls -la build/tvOS/ 2>/dev/null || echo "No build output found"
 
