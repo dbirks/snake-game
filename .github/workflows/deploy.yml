@@ -96,27 +96,18 @@ jobs:
         run: |
           # tvOS requires opaque images for Top Shelf, icons, and launch images.
           # Unity generates placeholders with alpha channels which Apple rejects.
-          pip3 install Pillow --quiet 2>/dev/null || true
-          python3 << 'PYEOF'
-          import os, glob
-          try:
-            from PIL import Image
-            for png in glob.glob("build/tvOS/**/Assets.xcassets/**/*.png", recursive=True):
-              img = Image.open(png)
-              if img.mode in ("RGBA", "LA", "PA"):
-                bg = Image.new("RGB", img.size, (255, 140, 0))  # orange background
-                bg.paste(img, mask=img.split()[-1] if "A" in img.mode else None)
-                bg.save(png)
-                print(f"Fixed alpha: {png}")
-              elif img.mode != "RGB":
-                img.convert("RGB").save(png)
-                print(f"Converted: {png}")
-          except ImportError:
-            print("Pillow not available, using sips fallback")
-            for png in glob.glob("build/tvOS/**/Assets.xcassets/**/*.png", recursive=True):
-              os.system(f'sips -s format bmp "{png}" --out /tmp/noalpha.bmp && sips -s format png /tmp/noalpha.bmp --out "{png}"')
-              print(f"Fixed: {png}")
-          PYEOF
+          # Find and fix ALL PNGs in the Xcode project (Images.xcassets, not Assets.xcassets)
+          find build/tvOS -name "*.png" | while read png; do
+            # Check if image has alpha using sips
+            has_alpha=$(sips -g hasAlpha "$png" 2>/dev/null | grep "yes" || true)
+            if [ -n "$has_alpha" ]; then
+              echo "Stripping alpha: $png"
+              # Convert to JPEG then back to PNG to strip alpha
+              sips -s format jpeg "$png" --out /tmp/noalpha.jpg 2>/dev/null
+              sips -s format png /tmp/noalpha.jpg --out "$png" 2>/dev/null
+              rm -f /tmp/noalpha.jpg
+            fi
+          done
           echo "Done fixing image assets"
 
       - name: Generate build number
