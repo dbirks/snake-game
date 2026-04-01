@@ -54,6 +54,16 @@ Adapted from the CAWCAW iOS app (`~/dev/cawcaw/ios/fastlane/`). Key differences 
 - Timestamp-based build numbers (`YYYYMMDDHHMMSS`)
 - Commit often with descriptive messages
 
+## No Broken Windows Policy
+
+We track every warning, error, and rough edge as a GitHub issue — nothing gets ignored or
+swept under the rug. If you see something wrong (CI warning, deprecation notice, flaky test,
+TODO in code, ugly workaround), file a GitHub issue immediately. We may not fix it today,
+but we will not lose track of it.
+
+When fixing issues, check the open issues list first — there may already be a ticket for it.
+Close issues with a commit reference when resolved.
+
 ## Dev Environment
 
 - Arch Linux, headless (no GUI/X11 — Unity Editor not usable locally)
