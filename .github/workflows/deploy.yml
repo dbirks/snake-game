@@ -16,6 +16,7 @@ on:
 env:
   RUBY_VERSION: '3.2'
   UNITY_VERSION: '6000.3.11f1'
+  UNITY_CHANGESET: '3000ef702840'
 
 jobs:
   # Run EditMode tests first (cheap Linux runner)
@@ -51,51 +52,50 @@ jobs:
             -logFile /dev/stdout \
             -quit || true
 
-  # Build + sign + upload all on macOS (tvOS requires macOS + Xcode)
+  # Build + sign + upload on macOS (tvOS requires macOS + Xcode)
   build-and-deploy:
     name: Build & Deploy to TestFlight
     needs: [test]
     runs-on: macos-15
-    timeout-minutes: 60
+    timeout-minutes: 90
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      # Cache the Unity installation to avoid 15-25 min install on every run
+      - name: Cache Unity installation
+        id: cache-unity
+        uses: actions/cache@v4
+        with:
+          path: /Applications/Unity/Hub/Editor/${{ env.UNITY_VERSION }}
+          key: unity-editor-${{ env.UNITY_VERSION }}-tvos-macos
+
       - name: Install Unity Hub
-        run: |
-          brew install --cask unity-hub
-          sleep 5
+        if: steps.cache-unity.outputs.cache-hit != 'true'
+        run: brew install --cask unity-hub
 
       - name: Install Unity with tvOS module
+        if: steps.cache-unity.outputs.cache-hit != 'true'
         run: |
-          # 6000.3.11f1 is not in the official release list, so we need the changeset hash
-          # Install using the unityhub CLI with changeset
-          /Applications/Unity\ Hub.app/Contents/MacOS/Unity\ Hub -- --headless install \
+          # Give Unity Hub a moment to initialize
+          sleep 5
+          "/Applications/Unity Hub.app/Contents/MacOS/Unity Hub" -- --headless install \
             --version ${{ env.UNITY_VERSION }} \
-            --changeset 3000ef702840 \
+            --changeset ${{ env.UNITY_CHANGESET }} \
             --module appletv \
-            --childModules || true
-          # Wait for install to settle
-          sleep 10
-          # Find the Unity editor path
-          UNITY_PATH=$(find /Applications/Unity/Hub/Editor -name "Unity" -type f -path "*/Unity.app/Contents/MacOS/Unity" 2>/dev/null | head -1)
-          if [ -z "$UNITY_PATH" ]; then
-            echo "Unity not found, listing what's available:"
-            ls -la /Applications/Unity/Hub/Editor/ 2>/dev/null || echo "No editors installed"
-            exit 1
-          fi
-          echo "UNITY_EDITOR=$UNITY_PATH" >> $GITHUB_ENV
-          echo "Found Unity at: $UNITY_PATH"
+            --childModules
+          echo "Unity installed at:"
+          ls -la "/Applications/Unity/Hub/Editor/${{ env.UNITY_VERSION }}/"
 
       - name: Activate Unity license
         env:
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         run: |
-          # Find the licensing client
-          LICENSING_CLIENT=$(find /Applications/Unity/Hub/Editor -name "Unity.Licensing.Client" -type f 2>/dev/null | head -1)
+          LICENSING_CLIENT=$(find "/Applications/Unity/Hub/Editor/${{ env.UNITY_VERSION }}" -name "Unity.Licensing.Client" -type f 2>/dev/null | head -1)
+          echo "Found licensing client at: $LICENSING_CLIENT"
           "$LICENSING_CLIENT" \
             --activate-all \
             --include-personal \
@@ -104,14 +104,16 @@ jobs:
 
       - name: Build tvOS Xcode project
         run: |
+          UNITY_EDITOR="/Applications/Unity/Hub/Editor/${{ env.UNITY_VERSION }}/Unity.app/Contents/MacOS/Unity"
           "$UNITY_EDITOR" \
             -batchmode \
             -nographics \
             -quit \
             -executeMethod SnakeGame.Editor.BuildScript.BuildTvOS \
-            -projectPath . \
+            -projectPath "$GITHUB_WORKSPACE" \
             -logFile -
-          ls -la build/tvOS/
+          echo "Build output:"
+          ls -la build/tvOS/ 2>/dev/null || echo "No build output found"
 
       - name: Generate build number
         id: build_number
