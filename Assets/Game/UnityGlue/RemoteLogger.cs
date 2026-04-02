@@ -53,7 +53,7 @@ namespace SnakeGame.UnityGlue
             }
 
             Application.logMessageReceived += HandleLog;
-            Debug.Log("[RemoteLogger] Pushing logs to Grafana Cloud Loki");
+            Debug.Log($"[RemoteLogger] Pushing logs to Grafana Cloud Loki (build={Application.buildNumber}, version={Application.version})");
         }
 
         private void HandleLog(string message, string stackTrace, LogType type)
@@ -90,7 +90,8 @@ namespace SnakeGame.UnityGlue
             sb.Append("{\"streams\":[{\"stream\":{");
             sb.Append("\"job\":\"snake-game\",");
             sb.Append("\"platform\":\"tvos\",");
-            sb.Append("\"version\":\"").Append(Application.version).Append("\"");
+            sb.Append("\"version\":\"").Append(Application.version).Append("\",");
+            sb.Append("\"build\":\"").Append(Application.buildNumber).Append("\"");
             sb.Append("},\"values\":[");
 
             for (int i = 0; i < batch.Count; i++)
@@ -138,6 +139,13 @@ namespace SnakeGame.UnityGlue
                     .Replace("\n", "\\n")
                     .Replace("\r", "\\r")
                     .Replace("\t", "\\t");
+        }
+
+        private void OnApplicationPause(bool paused)
+        {
+            // Flush logs when app is backgrounded
+            if (paused && _logBuffer.Count > 0 && !_isSending)
+                StartCoroutine(SendBatch());
         }
 
         private void OnDestroy()
