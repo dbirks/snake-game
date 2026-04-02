@@ -1,28 +1,25 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 using SnakeGame.Core;
 
 namespace SnakeGame.Input
 {
     /// <summary>
-    /// Converts Input System events into simulation InputCommands.
-    /// Supports full 360-degree analog stick input:
-    /// - Gamepad left stick / dpad → full analog direction
-    /// - Siri Remote touch surface → dpad-style direction
-    /// - Keyboard WASD → 8-way direction
+    /// Reads input using the OLD Input Manager (Input.GetAxis).
+    /// This is the simplest and most reliable approach for tvOS —
+    /// the Siri Remote touchpad and MFi/Bluetooth gamepads are
+    /// automatically mapped without any configuration.
+    ///
+    /// No Input System package needed. No PlayerSettings changes needed.
+    /// It just works.
     /// </summary>
     public class InputAdapter : MonoBehaviour
     {
         [SerializeField] private float deadzone = 0.3f;
 
-        private InputCommand _pendingCommand = InputCommand.None;
+        private InputCommand _pendingCommand;
+        private int _logCount;
 
         private void Awake()
-        {
-            ConfigureTvOSRemote();
-        }
-
-        private void ConfigureTvOSRemote()
         {
 #if UNITY_TVOS
             UnityEngine.tvOS.Remote.allowExitToHome = true;
@@ -31,32 +28,28 @@ namespace SnakeGame.Input
 #endif
         }
 
-        private int _moveLogCount = 0;
-
-        // Called by PlayerInput via SendMessages — receives gamepad stick,
-        // dpad, Siri Remote swipes, and keyboard WASD
-        public void OnMove(InputValue value)
+        private void Update()
         {
-            var v = value.Get<Vector2>();
+            // Old Input Manager — works on tvOS out of the box
+            // Siri Remote touchpad swipes + gamepad left stick + keyboard arrows
+            float h = UnityEngine.Input.GetAxis("Horizontal");
+            float v = UnityEngine.Input.GetAxis("Vertical");
 
-            // Log first 10 input events for debugging
-            if (_moveLogCount < 10)
+            if (_logCount < 5 && (Mathf.Abs(h) > deadzone || Mathf.Abs(v) > deadzone))
             {
-                Debug.Log($"[InputAdapter] OnMove: ({v.x:F2}, {v.y:F2})");
-                _moveLogCount++;
+                Debug.Log($"[InputAdapter] Input: h={h:F2} v={v:F2}");
+                _logCount++;
             }
 
-            if (v.sqrMagnitude > deadzone * deadzone)
-                _pendingCommand = InputCommand.FromStick(v.x, v.y);
+            if (h * h + v * v > deadzone * deadzone)
+                _pendingCommand = InputCommand.FromStick(h, v);
             else
                 _pendingCommand = InputCommand.None;
         }
 
         public InputCommand ConsumeCommand()
         {
-            var cmd = _pendingCommand;
-            // Don't reset — keep steering while stick is held
-            return cmd;
+            return _pendingCommand;
         }
     }
 }

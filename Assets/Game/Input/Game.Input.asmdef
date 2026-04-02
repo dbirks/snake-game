@@ -2,8 +2,7 @@
     "name": "Game.Input",
     "rootNamespace": "SnakeGame.Input",
     "references": [
-        "Game.Core",
-        "Unity.InputSystem"
+        "Game.Core"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

@@ -190,30 +190,10 @@ namespace SnakeGame.Editor
             rendererObj.transform.SetParent(gameObj.transform);
             rendererObj.AddComponent<SnakeRenderer>();
 
-            // Input adapter (child) with PlayerInput
+            // Input adapter — uses old Input Manager (Input.GetAxis), no setup needed
             var inputObj = new GameObject("Input");
             inputObj.transform.SetParent(gameObj.transform);
             var inputAdapter = inputObj.AddComponent<SnakeGame.Input.InputAdapter>();
-
-            // Load and assign Input Actions asset via SerializedObject
-            // (setting fields before OnEnable fires avoids action map timing issues)
-            var inputActions = AssetDatabase.LoadAssetAtPath<UnityEngine.InputSystem.InputActionAsset>(
-                "Assets/Game/Input/SnakeInputActions.inputactions");
-            if (inputActions != null)
-            {
-                var playerInput = inputObj.AddComponent<UnityEngine.InputSystem.PlayerInput>();
-                var piso = new SerializedObject(playerInput);
-                piso.FindProperty("m_Actions").objectReferenceValue = inputActions;
-                piso.FindProperty("m_DefaultActionMap").stringValue = "Gameplay";
-                piso.FindProperty("m_NotificationBehavior").enumValueIndex =
-                    (int)UnityEngine.InputSystem.PlayerNotifications.SendMessages;
-                piso.ApplyModifiedProperties();
-                Debug.Log("[BuildScript] Wired up Input Actions asset via SerializedObject");
-            }
-            else
-            {
-                Debug.LogWarning("[BuildScript] SnakeInputActions.inputactions not found");
-            }
 
             // GameManager wired up
             var manager = gameObj.AddComponent<GameManager>();

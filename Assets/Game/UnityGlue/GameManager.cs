@@ -28,17 +28,8 @@ namespace SnakeGame.UnityGlue
             _simulation = new SnakeSimulation(randomSeed);
             Time.fixedDeltaTime = 1f / 60f;
 
-            // Diagnostic: log input system state for debugging controller issues
             Debug.Log($"[GameManager] Started. InputAdapter={(inputAdapter != null ? "wired" : "NULL")}");
-            Debug.Log($"[GameManager] Input backends: {UnityEngine.InputSystem.InputSystem.settings?.supportedDevices}");
-
-            // Log all connected devices
-            foreach (var device in UnityEngine.InputSystem.InputSystem.devices)
-                Debug.Log($"[GameManager] Input device: {device.displayName} ({device.GetType().Name})");
-
-            // Log when new devices connect
-            UnityEngine.InputSystem.InputSystem.onDeviceChange += (device, change) =>
-                Debug.Log($"[GameManager] Device {change}: {device.displayName} ({device.GetType().Name})");
+            Debug.Log($"[GameManager] Using old Input Manager (Input.GetAxis)");
         }
 
         private void FixedUpdate()

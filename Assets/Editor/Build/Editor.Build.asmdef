@@ -4,8 +4,7 @@
     "references": [
         "Game.Core",
         "Game.UnityGlue",
-        "Game.Input",
-        "Unity.InputSystem"
+        "Game.Input"
     ],
     "includePlatforms": [
         "Editor"

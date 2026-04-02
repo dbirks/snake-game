@@ -74,35 +74,6 @@ jobs:
             --username "$UNITY_EMAIL" \
             --password "$UNITY_PASSWORD"
 
-      - name: Generate ProjectSettings and enable Input System
-        run: |
-          # Move test assemblies out first (they cause compilation errors)
-          mkdir -p /tmp/tests-backup
-          mv Assets/Tests /tmp/tests-backup/ 2>/dev/null || true
-
-          # Step 1: Launch Unity briefly to generate full ProjectSettings files
-          "$UNITY_EDITOR" \
-            -batchmode -nographics -quit \
-            -projectPath "$GITHUB_WORKSPACE" \
-            -logFile /dev/null 2>/dev/null || true
-
-          # Restore tests
-          mv /tmp/tests-backup/Tests Assets/ 2>/dev/null || true
-
-          # Step 2: Patch the generated PlayerSettings.asset
-          if [ -f ProjectSettings/PlayerSettings.asset ]; then
-            if grep -q "activeInputHandler" ProjectSettings/PlayerSettings.asset; then
-              sed -i 's/activeInputHandler: [0-9]/activeInputHandler: 2/' ProjectSettings/PlayerSettings.asset
-            else
-              sed -i '/PlayerSettings:/a\  activeInputHandler: 2' ProjectSettings/PlayerSettings.asset
-            fi
-            echo "Patched activeInputHandler to 2 (Both):"
-            grep "activeInputHandler" ProjectSettings/PlayerSettings.asset
-          else
-            echo "ERROR: PlayerSettings.asset not generated!"
-            exit 1
-          fi
-
       - name: Build tvOS Xcode project
         env:
           GRAFANA_LOKI_URL: ${{ secrets.GRAFANA_LOKI_URL }}
