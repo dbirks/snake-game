@@ -74,6 +74,29 @@ jobs:
             --username "$UNITY_EMAIL" \
             --password "$UNITY_PASSWORD"
 
+      - name: Enable Input System backend in PlayerSettings
+        run: |
+          # activeInputHandler must be set BEFORE Unity launches — setting it
+          # via SerializedObject during the build doesn't trigger a domain reload.
+          # Value: 0=Old, 1=New, 2=Both
+          if [ -f ProjectSettings/PlayerSettings.asset ]; then
+            # Patch existing file
+            sed -i 's/activeInputHandler: [0-9]/activeInputHandler: 2/' ProjectSettings/PlayerSettings.asset
+          else
+            # Generate a minimal PlayerSettings.asset that Unity will merge with defaults
+            # Unity opens the project, sees this, and uses activeInputHandler=2
+            cat > ProjectSettings/PlayerSettings.asset << 'SETTINGSEOF'
+          %YAML 1.1
+          %TAG !u! tag:unity3d.com,2011:
+          --- !u!129 &1
+          PlayerSettings:
+            m_ObjectHideFlags: 0
+            activeInputHandler: 2
+          SETTINGSEOF
+          fi
+          echo "activeInputHandler set to 2 (Both)"
+          grep activeInputHandler ProjectSettings/PlayerSettings.asset || echo "not found in file"
+
       - name: Build tvOS Xcode project
         env:
           GRAFANA_LOKI_URL: ${{ secrets.GRAFANA_LOKI_URL }}
