@@ -28,6 +28,13 @@ namespace SnakeGame.Editor
             PlayerSettings.productName = "Snake Game";
             PlayerSettings.companyName = "Birks";
 
+            // CRITICAL: Enable the new Input System backend.
+            // Without this, the entire com.unity.inputsystem package is non-functional
+            // at runtime — no controller, no Siri Remote, no keyboard input.
+            // Default is "Input Manager (Old)" which ignores all Input System bindings.
+            PlayerSettings.activeInputHandler = PlayerSettings.ActiveInputHandler.Both;
+            Debug.Log("[BuildScript] Set Active Input Handling to Both (Old + New)");
+
             Debug.Log("[BuildScript] Set bundle ID to dev.birks.snakegame");
 
             // Ensure required shaders are included in the build
@@ -159,17 +166,20 @@ namespace SnakeGame.Editor
             inputObj.transform.SetParent(gameObj.transform);
             var inputAdapter = inputObj.AddComponent<SnakeGame.Input.InputAdapter>();
 
-            // Load and assign Input Actions asset
+            // Load and assign Input Actions asset via SerializedObject
+            // (setting fields before OnEnable fires avoids action map timing issues)
             var inputActions = AssetDatabase.LoadAssetAtPath<UnityEngine.InputSystem.InputActionAsset>(
                 "Assets/Game/Input/SnakeInputActions.inputactions");
             if (inputActions != null)
             {
                 var playerInput = inputObj.AddComponent<UnityEngine.InputSystem.PlayerInput>();
-                playerInput.actions = inputActions;
-                playerInput.defaultActionMap = "Gameplay";
-                playerInput.notificationBehavior =
-                    UnityEngine.InputSystem.PlayerNotifications.SendMessages;
-                Debug.Log("[BuildScript] Wired up Input Actions asset");
+                var piso = new SerializedObject(playerInput);
+                piso.FindProperty("m_Actions").objectReferenceValue = inputActions;
+                piso.FindProperty("m_DefaultActionMap").stringValue = "Gameplay";
+                piso.FindProperty("m_NotificationBehavior").enumValueIndex =
+                    (int)UnityEngine.InputSystem.PlayerNotifications.SendMessages;
+                piso.ApplyModifiedProperties();
+                Debug.Log("[BuildScript] Wired up Input Actions asset via SerializedObject");
             }
             else
             {
@@ -185,6 +195,10 @@ namespace SnakeGame.Editor
                 rendererObj.GetComponent<SnakeRenderer>();
             so.FindProperty("inputAdapter").objectReferenceValue = inputAdapter;
             so.ApplyModifiedProperties();
+
+            // Remote logger for runtime debugging (disabled unless LOG_SERVER_URL is set)
+            var loggerObj = new GameObject("RemoteLogger");
+            loggerObj.AddComponent<RemoteLogger>();
 
             // Save scene
             EditorSceneManager.SaveScene(scene, MainScenePath);
