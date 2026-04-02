@@ -9,14 +9,19 @@
 #   ./Tools/ci/loki-logs.sh --since 24h  # last 24 hours
 set -euo pipefail
 
+# Load .env from repo root if it exists
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+if [ -f "$REPO_ROOT/.env" ]; then
+  set -a; source "$REPO_ROOT/.env"; set +a
+fi
+
 export LOKI_ADDR="https://logs-prod-036.grafana.net"
 export LOKI_USERNAME="1538330"
-# Token must have logs:read scope. Set via env or .env file.
-export LOKI_PASSWORD="${GRAFANA_LOKI_TOKEN:-}"
+export LOKI_PASSWORD="${GRAFANA_LOKI_READ_TOKEN:-}"
 
 if [ -z "$LOKI_PASSWORD" ]; then
-  echo "Set GRAFANA_LOKI_TOKEN env var (needs logs:read scope)"
-  echo "  export GRAFANA_LOKI_TOKEN=glc_..."
+  echo "Set GRAFANA_LOKI_READ_TOKEN in .env (needs logs:read scope)"
   exit 1
 fi
 

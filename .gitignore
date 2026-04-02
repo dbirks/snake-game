@@ -59,6 +59,9 @@ vendor/
 Tests.Local/bin/
 Tests.Local/obj/
 
+# Local environment (secrets)
+.env
+
 # Build-time generated config (contains secrets)
 Assets/Resources/loki_config.txt
 
