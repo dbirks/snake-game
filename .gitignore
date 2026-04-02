@@ -59,5 +59,8 @@ vendor/
 Tests.Local/bin/
 Tests.Local/obj/
 
+# Build-time generated config (contains secrets)
+Assets/Resources/loki_config.txt
+
 # Claude Code local settings
 .claude/settings.local.json

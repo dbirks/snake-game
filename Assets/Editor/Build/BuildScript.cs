@@ -37,6 +37,21 @@ namespace SnakeGame.Editor
 
             Debug.Log("[BuildScript] Set bundle ID to dev.birks.snakegame");
 
+            // Configure remote logging (Grafana Cloud Loki)
+            // Write credentials from CI env vars into a Resources text file
+            // that RemoteLogger reads at runtime
+            var lokiUrl = System.Environment.GetEnvironmentVariable("GRAFANA_LOKI_URL") ?? "";
+            var lokiUser = System.Environment.GetEnvironmentVariable("GRAFANA_LOKI_USER") ?? "";
+            var lokiToken = System.Environment.GetEnvironmentVariable("GRAFANA_LOKI_TOKEN") ?? "";
+            if (!string.IsNullOrEmpty(lokiUrl))
+            {
+                Directory.CreateDirectory("Assets/Resources");
+                File.WriteAllText("Assets/Resources/loki_config.txt",
+                    $"{lokiUrl}\n{lokiUser}\n{lokiToken}");
+                AssetDatabase.Refresh();
+                Debug.Log("[BuildScript] Wrote Grafana Loki config to Resources");
+            }
+
             // Ensure required shaders are included in the build
             // (Shader.Find returns null on tvOS if the shader is stripped)
             EnsureShadersIncluded();
