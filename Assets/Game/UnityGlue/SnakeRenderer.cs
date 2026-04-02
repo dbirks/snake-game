@@ -32,6 +32,24 @@ namespace SnakeGame.UnityGlue
         }
 
         /// <summary>
+        /// Change snake colors at runtime (called from GameManager after menu selection).
+        /// </summary>
+        public void SetColors(Color head, Color body)
+        {
+            snakeHeadColor = head;
+            snakeBodyColor = body;
+            if (_headMat != null) { _headMat.color = head; _headMat.SetColor("_Color", head); }
+            if (_bodyMat != null) { _bodyMat.color = body; _bodyMat.SetColor("_Color", body); }
+
+            // Update existing segment sprites
+            for (int i = 0; i < _segmentObjects.Count; i++)
+            {
+                var sr = _segmentObjects[i].GetComponent<SpriteRenderer>();
+                if (sr != null) sr.color = i == 0 ? head : body;
+            }
+        }
+
+        /// <summary>
         /// Create a flat colored material that works on all platforms including tvOS.
         /// Shader.Find("Unlit/Color") can return null on tvOS if the shader is stripped.
         /// Using a runtime-generated shader to guarantee availability.

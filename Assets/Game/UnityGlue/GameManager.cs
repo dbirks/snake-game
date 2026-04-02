@@ -6,56 +6,140 @@ namespace SnakeGame.UnityGlue
 {
     /// <summary>
     /// Wires the deterministic simulation to Unity's game loop.
-    /// Runs simulation at a fixed tick rate via FixedUpdate.
+    /// Handles menu → gameplay → game over → restart flow.
     /// </summary>
     public class GameManager : MonoBehaviour
     {
-        [Header("Simulation")]
-        [SerializeField] private int randomSeed = 42;
-
         [Header("References")]
         [SerializeField] private SnakeRenderer snakeRenderer;
         [SerializeField] private InputAdapter inputAdapter;
 
+        private MainMenu _menu;
         private SnakeSimulation _simulation;
+        private SnakeSimulation _simulation2; // player 2
+        private SnakeRenderer _renderer2;
+        private InputAdapter _input2;
+        private GameConfig _config;
         private GUIStyle _scoreStyle;
         private GUIStyle _gameOverStyle;
+        private bool _gameActive;
+        private float _deathTimer;
 
         public SnakeSimulation Simulation => _simulation;
 
         private void Start()
         {
-            _simulation = new SnakeSimulation(randomSeed);
+            Debug.Log($"[GameManager] Started. InputAdapter={(inputAdapter != null ? "wired" : "NULL")}");
+            Debug.Log("[GameManager] Using old Input Manager (Input.GetAxis)");
+
+            // Add menu component
+            _menu = gameObject.AddComponent<MainMenu>();
+        }
+
+        private void Update()
+        {
+            // Wait for menu
+            if (_menu != null && !_menu.GameStarted) return;
+
+            // First frame after menu — start game
+            if (!_gameActive)
+            {
+                _config = _menu != null ? _menu.Config : new GameConfig();
+                StartGame();
+                if (_menu != null) { Destroy(_menu); _menu = null; }
+            }
+        }
+
+        private void StartGame()
+        {
+            _gameActive = true;
+            _deathTimer = 0;
+            int seed = Random.Range(0, int.MaxValue);
+
+            _simulation = new SnakeSimulation(seed);
             Time.fixedDeltaTime = 1f / 60f;
 
-            Debug.Log($"[GameManager] Started. InputAdapter={(inputAdapter != null ? "wired" : "NULL")}");
-            Debug.Log($"[GameManager] Using old Input Manager (Input.GetAxis)");
+            // Apply color
+            if (snakeRenderer != null && _config != null)
+            {
+                var headColor = SnakeColorPalette.GetHeadColor(_config.Player1Color);
+                var bodyColor = SnakeColorPalette.GetBodyColor(_config.Player1Color);
+                snakeRenderer.SetColors(headColor, bodyColor);
+            }
+
+            // Player 2
+            if (_config != null && _config.PlayerCount == 2)
+                SetupPlayer2(seed + 1);
+
+            Debug.Log($"[GameManager] Game started: {_config?.PlayerCount}P, color={_config?.Player1Color}");
+        }
+
+        private void SetupPlayer2(int seed)
+        {
+            _simulation2 = new SnakeSimulation(seed);
+            // Offset player 2 start position
+            _simulation2.State.Segments[0] = new Vector2F(
+                SnakeSimulation.ArenaWidth / 2f,
+                SnakeSimulation.ArenaHeight / 4f);
+
+            // Create renderer for player 2
+            var p2Obj = new GameObject("Player2");
+            p2Obj.transform.SetParent(transform);
+            _renderer2 = p2Obj.AddComponent<SnakeRenderer>();
+            var headColor = SnakeColorPalette.GetHeadColor(_config.Player2Color);
+            var bodyColor = SnakeColorPalette.GetBodyColor(_config.Player2Color);
+            _renderer2.SetColors(headColor, bodyColor);
+
+            // Create input for player 2 (joystick 2)
+            var inputObj = new GameObject("Input2");
+            inputObj.transform.SetParent(transform);
+            _input2 = inputObj.AddComponent<InputAdapter>();
+            _input2.SetPlayerIndex(2);
+
+            Debug.Log("[GameManager] Player 2 set up");
         }
 
         private void FixedUpdate()
         {
-            if (_simulation == null) return;
+            if (!_gameActive) return;
 
-            var command = inputAdapter != null
-                ? inputAdapter.ConsumeCommand()
-                : InputCommand.None;
+            // Player 1
+            if (_simulation != null)
+            {
+                var cmd = inputAdapter != null ? inputAdapter.ConsumeCommand() : InputCommand.None;
+                _simulation.Tick(Time.fixedDeltaTime, cmd);
+            }
 
-            _simulation.Tick(Time.fixedDeltaTime, command);
+            // Player 2
+            if (_simulation2 != null)
+            {
+                var cmd = _input2 != null ? _input2.ConsumeCommand() : InputCommand.None;
+                _simulation2.Tick(Time.fixedDeltaTime, cmd);
+            }
 
-            // Auto-restart on death after a short delay
-            if (!_simulation.State.IsAlive && _simulation.State.TickCount % 180 == 0)
-                RestartGame();
+            // Check if all players dead
+            bool allDead = _simulation != null && !_simulation.State.IsAlive;
+            if (_simulation2 != null) allDead = allDead && !_simulation2.State.IsAlive;
+
+            if (allDead)
+            {
+                _deathTimer += Time.fixedDeltaTime;
+                if (_deathTimer > 3f) RestartGame();
+            }
         }
 
         private void LateUpdate()
         {
-            if (_simulation == null || snakeRenderer == null) return;
-            snakeRenderer.Render(_simulation.State);
+            if (!_gameActive) return;
+            if (snakeRenderer != null && _simulation != null)
+                snakeRenderer.Render(_simulation.State);
+            if (_renderer2 != null && _simulation2 != null)
+                _renderer2.Render(_simulation2.State);
         }
 
         private void OnGUI()
         {
-            if (_simulation == null) return;
+            if (!_gameActive || _simulation == null) return;
 
             if (_scoreStyle == null)
             {
@@ -79,21 +163,32 @@ namespace SnakeGame.UnityGlue
                 _gameOverStyle.normal.textColor = new Color(1f, 0.3f, 0.3f, 0.9f);
             }
 
-            // Score display
-            GUI.Label(new Rect(Screen.width - 250, 20, 230, 60),
-                $"Score: {_simulation.State.Score}", _scoreStyle);
+            // Score
+            string scoreText = _simulation2 != null
+                ? $"P1: {_simulation.State.Score}  P2: {_simulation2.State.Score}"
+                : $"Score: {_simulation.State.Score}";
+            GUI.Label(new Rect(Screen.width - 400, 20, 380, 60), scoreText, _scoreStyle);
 
-            // Game over message
-            if (!_simulation.State.IsAlive)
+            // Game over
+            bool allDead = !_simulation.State.IsAlive;
+            if (_simulation2 != null) allDead = allDead && !_simulation2.State.IsAlive;
+            if (allDead)
             {
                 GUI.Label(new Rect(0, Screen.height / 2 - 50, Screen.width, 100),
                     "GAME OVER", _gameOverStyle);
             }
         }
 
-        public void RestartGame()
+        private void RestartGame()
         {
-            _simulation = new SnakeSimulation(Random.Range(0, int.MaxValue));
+            // Clean up player 2 objects
+            if (_renderer2 != null) { Destroy(_renderer2.gameObject); _renderer2 = null; }
+            if (_input2 != null) { Destroy(_input2.gameObject); _input2 = null; }
+            _simulation2 = null;
+
+            // Show menu again
+            _gameActive = false;
+            _menu = gameObject.AddComponent<MainMenu>();
         }
     }
 }

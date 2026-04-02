@@ -4,20 +4,20 @@ using SnakeGame.Core;
 namespace SnakeGame.Input
 {
     /// <summary>
-    /// Reads input using the OLD Input Manager (Input.GetAxis).
-    /// This is the simplest and most reliable approach for tvOS —
-    /// the Siri Remote touchpad and MFi/Bluetooth gamepads are
-    /// automatically mapped without any configuration.
+    /// Reads input using the old Input Manager (Input.GetAxis).
+    /// Supports multiple players via joystick index.
     ///
-    /// No Input System package needed. No PlayerSettings changes needed.
-    /// It just works.
+    /// Player 1: default axes (Horizontal/Vertical) + keyboard
+    /// Player 2: joystick-specific axes (Joy2 Axis X / Joy2 Axis Y)
     /// </summary>
     public class InputAdapter : MonoBehaviour
     {
         [SerializeField] private float deadzone = 0.3f;
-
+        private int _playerIndex = 1;
         private InputCommand _pendingCommand;
         private int _logCount;
+
+        public void SetPlayerIndex(int index) { _playerIndex = index; }
 
         private void Awake()
         {
@@ -30,14 +30,25 @@ namespace SnakeGame.Input
 
         private void Update()
         {
-            // Old Input Manager — works on tvOS out of the box
-            // Siri Remote touchpad swipes + gamepad left stick + keyboard arrows
-            float h = UnityEngine.Input.GetAxis("Horizontal");
-            float v = UnityEngine.Input.GetAxis("Vertical");
+            float h, v;
+
+            if (_playerIndex == 1)
+            {
+                // Player 1: default axes (Siri Remote + first gamepad + keyboard)
+                h = UnityEngine.Input.GetAxis("Horizontal");
+                v = UnityEngine.Input.GetAxis("Vertical");
+            }
+            else
+            {
+                // Player 2: read second joystick directly
+                // Joystick axes are named "joystick N axis X" where N=1-based
+                h = UnityEngine.Input.GetAxis($"Joy{_playerIndex} Axis 1");
+                v = UnityEngine.Input.GetAxis($"Joy{_playerIndex} Axis 2");
+            }
 
             if (_logCount < 5 && (Mathf.Abs(h) > deadzone || Mathf.Abs(v) > deadzone))
             {
-                Debug.Log($"[InputAdapter] Input: h={h:F2} v={v:F2}");
+                Debug.Log($"[InputAdapter P{_playerIndex}] h={h:F2} v={v:F2}");
                 _logCount++;
             }
 
