@@ -8,14 +8,14 @@ on:
   workflow_dispatch: {}
 
 env:
-  UNITY_IMAGE: unityci/editor:ubuntu-6000.4.0f1-base-3.2.2
+  UNITY_IMAGE: unityci/editor:ubuntu-6000.4.1f1-base-3.2.2
 
 jobs:
   testEditMode:
     name: EditMode Tests
     runs-on: ubuntu-latest
     container:
-      image: unityci/editor:ubuntu-6000.4.0f1-base-3.2.2
+      image: unityci/editor:ubuntu-6000.4.1f1-base-3.2.2
     steps:
       - uses: actions/checkout@v4
 
@@ -55,7 +55,7 @@ jobs:
     name: PlayMode Tests
     runs-on: ubuntu-latest
     container:
-      image: unityci/editor:ubuntu-6000.4.0f1-base-3.2.2
+      image: unityci/editor:ubuntu-6000.4.1f1-base-3.2.2
     steps:
       - uses: actions/checkout@v4
 

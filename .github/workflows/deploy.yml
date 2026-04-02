@@ -15,8 +15,8 @@ on:
 
 env:
   RUBY_VERSION: '3.2'
-  UNITY_VERSION: '6000.4.0f1'
-  UNITY_CHANGESET: '8cf496087c8f'
+  UNITY_VERSION: '6000.4.1f1'
+  UNITY_CHANGESET: '8535861f39e1'
 
 jobs:
   # Tests run separately via test.yml — this workflow focuses on build + deploy
