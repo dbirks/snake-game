@@ -3,7 +3,8 @@
     "rootNamespace": "SnakeGame.UnityGlue",
     "references": [
         "Game.Core",
-        "Game.Input"
+        "Game.Input",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

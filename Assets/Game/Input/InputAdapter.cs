@@ -31,11 +31,21 @@ namespace SnakeGame.Input
 #endif
         }
 
+        private int _moveLogCount = 0;
+
         // Called by PlayerInput via SendMessages — receives gamepad stick,
         // dpad, Siri Remote swipes, and keyboard WASD
         public void OnMove(InputValue value)
         {
             var v = value.Get<Vector2>();
+
+            // Log first 10 input events for debugging
+            if (_moveLogCount < 10)
+            {
+                Debug.Log($"[InputAdapter] OnMove: ({v.x:F2}, {v.y:F2})");
+                _moveLogCount++;
+            }
+
             if (v.sqrMagnitude > deadzone * deadzone)
                 _pendingCommand = InputCommand.FromStick(v.x, v.y);
             else
