@@ -37,11 +37,11 @@ namespace SnakeGame.UnityGlue
             _inputCooldown -= Time.deltaTime;
             if (_inputCooldown > 0) return;
 
-            float v = Input.GetAxis("Vertical");
-            float h = Input.GetAxis("Horizontal");
-            bool select = Input.GetKeyDown(KeyCode.JoystickButton14) ||
-                          Input.GetKeyDown(KeyCode.Return) ||
-                          Input.GetKeyDown(KeyCode.Space);
+            float v = UnityEngine.Input.GetAxis("Vertical");
+            float h = UnityEngine.Input.GetAxis("Horizontal");
+            bool select = UnityEngine.Input.GetKeyDown(KeyCode.JoystickButton14) ||
+                          UnityEngine.Input.GetKeyDown(KeyCode.Return) ||
+                          UnityEngine.Input.GetKeyDown(KeyCode.Space);
 
             if (_inSettings)
                 HandleSettingsInput(v, h, select);
