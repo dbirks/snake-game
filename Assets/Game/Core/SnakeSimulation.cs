@@ -54,6 +54,8 @@ namespace SnakeGame.Core
             }
 
             state.FoodPosition = SpawnFood(state);
+            state.CurrentFruit = SpawnFruitType();
+            state.SpeedEffect = 1f;
             return state;
         }
 
@@ -92,9 +94,18 @@ namespace SnakeGame.Core
                 (float)Math.Cos(State.HeadingAngle),
                 (float)Math.Sin(State.HeadingAngle));
 
-            // Move head
+            // Tick down speed effect
+            if (State.EffectTimer > 0)
+            {
+                State.EffectTimer -= dt;
+                if (State.EffectTimer <= 0)
+                    State.SpeedEffect = 1f;
+            }
+
+            // Move head (apply speed effect)
+            float currentSpeed = State.Speed * (State.SpeedEffect > 0 ? State.SpeedEffect : 1f);
             var head = State.Segments[0];
-            var newHead = head + State.Direction * (State.Speed * dt);
+            var newHead = head + State.Direction * (currentSpeed * dt);
 
             // Wall collision — wrap around
             newHead = new Vector2F(
@@ -111,9 +122,27 @@ namespace SnakeGame.Core
 
             if (toFood.SqrMagnitude < FoodRadius * FoodRadius)
             {
-                State.Score++;
+                var fruit = State.CurrentFruit;
+                State.Score += FruitEffects.ScoreValue(fruit);
+                State.PendingGrowth += FruitEffects.GrowthAmount(fruit);
+
+                // Speed effect
+                float speedMul = FruitEffects.SpeedMultiplier(fruit);
+                float duration = FruitEffects.EffectDuration(fruit);
+                if (duration > 0)
+                {
+                    State.SpeedEffect = speedMul;
+                    State.EffectTimer = duration;
+                }
+
+                // Shrink effect
+                int shrink = FruitEffects.ShrinkAmount(fruit);
+                for (int s = 0; s < shrink && State.Segments.Count > 3; s++)
+                    State.Segments.RemoveAt(State.Segments.Count - 1);
+
+                // Spawn next fruit
                 State.FoodPosition = SpawnFood(State);
-                State.PendingGrowth += 3; // grow 3 segments per food
+                State.CurrentFruit = SpawnFruitType();
             }
 
             // Grow or trim tail
@@ -152,11 +181,27 @@ namespace SnakeGame.Core
 
         private Vector2F SpawnFood(SnakeState state)
         {
-            // Simple random placement within arena bounds with margin
             const float margin = 1f;
             float x = margin + (float)(_rng.NextDouble() * (ArenaWidth - 2 * margin));
             float y = margin + (float)(_rng.NextDouble() * (ArenaHeight - 2 * margin));
             return new Vector2F(x, y);
+        }
+
+        private FruitType SpawnFruitType()
+        {
+            var values = (FruitType[])Enum.GetValues(typeof(FruitType));
+            int totalWeight = 0;
+            foreach (var f in values)
+                totalWeight += FruitEffects.SpawnWeight(f);
+
+            int roll = _rng.Next(totalWeight);
+            int cumulative = 0;
+            foreach (var f in values)
+            {
+                cumulative += FruitEffects.SpawnWeight(f);
+                if (roll < cumulative) return f;
+            }
+            return FruitType.Apple;
         }
 
         private static float Wrap(float value, float min, float max)

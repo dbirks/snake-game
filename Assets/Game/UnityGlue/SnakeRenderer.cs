@@ -101,9 +101,31 @@ namespace SnakeGame.UnityGlue
                 _segmentObjects[i].transform.position = new Vector3(seg.X, seg.Y, 0f);
             }
 
-            // Position food
+            // Position and style food based on fruit type
             _foodObject.transform.position = new Vector3(
                 state.FoodPosition.X, state.FoodPosition.Y, 0f);
+            UpdateFruitAppearance(state.CurrentFruit);
+        }
+
+        private void UpdateFruitAppearance(SnakeGame.Core.FruitType fruit)
+        {
+            var sr = _foodObject.GetComponent<SpriteRenderer>();
+            if (sr == null) return;
+
+            Color c;
+            float scale;
+            switch (fruit)
+            {
+                case Core.FruitType.Apple:      c = new Color(0.9f, 0.2f, 0.2f); scale = 0.5f; break;
+                case Core.FruitType.Banana:     c = new Color(1f, 0.9f, 0.2f);   scale = 0.55f; break;
+                case Core.FruitType.Grape:      c = new Color(0.6f, 0.2f, 0.8f); scale = 0.4f; break;
+                case Core.FruitType.Orange:     c = new Color(1f, 0.6f, 0f);     scale = 0.5f; break;
+                case Core.FruitType.Strawberry: c = new Color(1f, 0.3f, 0.4f);   scale = 0.4f; break;
+                case Core.FruitType.Watermelon: c = new Color(0.2f, 0.8f, 0.3f); scale = 0.7f; break;
+                default:                        c = new Color(0.9f, 0.2f, 0.2f); scale = 0.5f; break;
+            }
+            sr.color = c;
+            _foodObject.transform.localScale = Vector3.one * scale;
         }
 
         /// <summary>

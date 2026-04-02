@@ -38,8 +38,11 @@ namespace SnakeGame.Core
         public int Score;
         public bool IsAlive;
         public Vector2F FoodPosition;
+        public FruitType CurrentFruit;
         public int TickCount;
         public int PendingGrowth; // segments to add before trimming tail
+        public float SpeedEffect;  // multiplier (1.0 = normal)
+        public float EffectTimer;  // seconds remaining
 
         public SnakeState Clone()
         {
@@ -53,7 +56,10 @@ namespace SnakeGame.Core
                 IsAlive = IsAlive,
                 FoodPosition = FoodPosition,
                 TickCount = TickCount,
-                PendingGrowth = PendingGrowth
+                PendingGrowth = PendingGrowth,
+                CurrentFruit = CurrentFruit,
+                SpeedEffect = SpeedEffect,
+                EffectTimer = EffectTimer
             };
         }
     }
