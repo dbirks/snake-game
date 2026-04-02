@@ -166,19 +166,32 @@ platform :ios do
 
     is_external_release = ENV['GITHUB_REF'] && ENV['GITHUB_REF'].start_with?('refs/tags/v')
 
-    # Upload build and distribute to testers
-    # Internal builds go to "internal" group, tagged releases go to "Pre-release"
-    upload_to_testflight(
-      skip_waiting_for_build_processing: false,
-      skip_submission: false,
-      distribute_external: is_external_release,
-      groups: is_external_release ? ["Pre-release"] : ["internal"],
-      changelog: is_external_release ? "New version: #{ENV['GITHUB_REF_NAME']}" : "Internal build from CI",
-      notify_external_testers: is_external_release,
-      uses_non_exempt_encryption: false,
-      beta_app_description: "Snake game for Apple TV — free-flowing snake with flat orange aesthetic",
-      beta_app_feedback_email: "david@birks.dev"
-    )
+    if is_external_release
+      # Tagged releases: distribute to external group (triggers beta review)
+      upload_to_testflight(
+        skip_waiting_for_build_processing: false,
+        skip_submission: false,
+        distribute_external: true,
+        groups: ["Pre-release"],
+        changelog: "New version: #{ENV['GITHUB_REF_NAME']}",
+        notify_external_testers: true,
+        uses_non_exempt_encryption: false,
+        beta_app_description: "Snake game for Apple TV — free-flowing snake with flat orange aesthetic",
+        beta_app_feedback_email: "david@birks.dev"
+      )
+    else
+      # Internal builds: upload only, NO group distribution, NO beta review.
+      # Internal team members (App Store Connect users) automatically see all
+      # processed builds in TestFlight without needing group assignment.
+      upload_to_testflight(
+        skip_waiting_for_build_processing: false,
+        skip_submission: true,
+        changelog: "Internal build from CI",
+        uses_non_exempt_encryption: false,
+        beta_app_description: "Snake game for Apple TV — free-flowing snake with flat orange aesthetic",
+        beta_app_feedback_email: "david@birks.dev"
+      )
+    end
   end
 
   # ============================================
