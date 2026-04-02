@@ -37,7 +37,7 @@ killed manual `.alf`→`.ulf` activation for Personal licenses. Instead, we:
 3. Call `unity-editor -runTests` directly
 
 This requires `UNITY_EMAIL` and `UNITY_PASSWORD` secrets (no `UNITY_LICENSE` needed
-for activation, though it's still set as a secret). Docker image: `ubuntu-6000.3.11f1-base-3.2.2`.
+for activation, though it's still set as a secret). Docker image: `ubuntu-6000.4.0f1-base-3.2.2`.
 
 ## Fastlane
 
