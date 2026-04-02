@@ -54,6 +54,19 @@ Adapted from the CAWCAW iOS app (`~/dev/cawcaw/ios/fastlane/`). Key differences 
 - Timestamp-based build numbers (`YYYYMMDDHHMMSS`)
 - Commit often with descriptive messages
 
+## Quality First
+
+We are building for quality. When unsure about something — a Unity API, a tvOS quirk, a
+Fastlane option, a controller integration detail — stop and research it online before
+guessing. Use web search, read official docs, check GitHub issues. A few minutes of research
+prevents hours of debugging blind CI pipelines.
+
+Prefer correctness over speed. Get it right, ship it once.
+
+Use sub-agents liberally for research, parallel investigations, and exploration. Don't try
+to do everything sequentially — spin up parallel agents to research different aspects of a
+problem simultaneously.
+
 ## No Broken Windows Policy
 
 We track every warning, error, and rough edge as a GitHub issue — nothing gets ignored or
