@@ -113,13 +113,14 @@ namespace SnakeGame.Core
             {
                 State.Score++;
                 State.FoodPosition = SpawnFood(State);
-                // Don't remove tail — snake grows
+                State.PendingGrowth += 3; // grow 3 segments per food
             }
+
+            // Grow or trim tail
+            if (State.PendingGrowth > 0)
+                State.PendingGrowth--;
             else
-            {
-                // Remove tail to maintain length
                 State.Segments.RemoveAt(State.Segments.Count - 1);
-            }
 
             // Self-collision check (skip head and nearby segments to avoid
             // false positives from tightly-spaced trailing body)

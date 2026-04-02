@@ -39,6 +39,7 @@ namespace SnakeGame.Core
         public bool IsAlive;
         public Vector2F FoodPosition;
         public int TickCount;
+        public int PendingGrowth; // segments to add before trimming tail
 
         public SnakeState Clone()
         {
@@ -51,7 +52,8 @@ namespace SnakeGame.Core
                 Score = Score,
                 IsAlive = IsAlive,
                 FoodPosition = FoodPosition,
-                TickCount = TickCount
+                TickCount = TickCount,
+                PendingGrowth = PendingGrowth
             };
         }
     }
