@@ -96,16 +96,17 @@ jobs:
           echo "Build output:"
           ls -la build/tvOS/ 2>/dev/null || echo "No build output found"
 
-      - name: Set export compliance in Info.plist
+      - name: Set export compliance in ALL Info.plist files
         run: |
-          # Set ITSAppUsesNonExemptEncryption=false so TestFlight doesn't
-          # require manual compliance answers for each build
-          PLIST=$(find build/tvOS -name "Info.plist" -path "*/Unity-iPhone/*" | head -1)
-          if [ -n "$PLIST" ]; then
-            /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" "$PLIST" 2>/dev/null || \
-            /usr/libexec/PlistBuddy -c "Set :ITSAppUsesNonExemptEncryption false" "$PLIST"
-            echo "Set ITSAppUsesNonExemptEncryption=false in $PLIST"
-          fi
+          # Set ITSAppUsesNonExemptEncryption=false in EVERY Info.plist in the
+          # Xcode project. This must be in the source plist before xcodebuild
+          # archive, so it's baked into the final IPA. Apple reads this at
+          # processing time — it's the only reliable way to skip compliance.
+          find build/tvOS -name "Info.plist" | while read plist; do
+            /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" "$plist" 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c "Set :ITSAppUsesNonExemptEncryption false" "$plist"
+            echo "Set ITSAppUsesNonExemptEncryption=false in $plist"
+          done
 
       - name: Fix tvOS image assets (remove alpha channels)
         run: |

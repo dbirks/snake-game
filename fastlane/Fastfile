@@ -139,7 +139,8 @@ platform :ios do
       sdk: "appletvos",
       xcargs: [
         (ENV['CI'] ? "OTHER_CODE_SIGN_FLAGS='--keychain build.keychain'" : ""),
-        "-allowProvisioningUpdates"
+        "-allowProvisioningUpdates",
+        "INFOPLIST_KEY_ITSAppUsesNonExemptEncryption=NO"
       ].reject(&:empty?).join(" "),
       export_options: {
         method: "app-store",
