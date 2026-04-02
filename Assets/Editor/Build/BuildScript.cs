@@ -31,10 +31,23 @@ namespace SnakeGame.Editor
             // CRITICAL: Enable the new Input System backend.
             // Without this, the entire com.unity.inputsystem package is non-functional
             // at runtime — no controller, no Siri Remote, no keyboard input.
-            // Unity 6 moved this API from PlayerSettings to EditorPlayerSettings.
-            EditorPlayerSettings.activeInputHandler =
-                EditorPlayerSettings.PlayerSettingsActiveInputHandler.Both;
-            Debug.Log("[BuildScript] Set Active Input Handling to Both (Old + New)");
+            // Use SerializedObject on PlayerSettings to set the internal property.
+            var playerSettingsAsset = AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/PlayerSettings.asset");
+            if (playerSettingsAsset.Length > 0)
+            {
+                var psSo = new SerializedObject(playerSettingsAsset[0]);
+                var inputProp = psSo.FindProperty("activeInputHandler");
+                if (inputProp != null)
+                {
+                    inputProp.intValue = 2; // 0=Old, 1=New, 2=Both
+                    psSo.ApplyModifiedProperties();
+                    Debug.Log("[BuildScript] Set Active Input Handling to Both (2) via SerializedObject");
+                }
+                else
+                {
+                    Debug.LogWarning("[BuildScript] Could not find activeInputHandler property");
+                }
+            }
 
             Debug.Log("[BuildScript] Set bundle ID to dev.birks.snakegame");
 
