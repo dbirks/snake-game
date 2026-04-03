@@ -22,7 +22,7 @@ jobs:
   # Tests run separately via test.yml -- this workflow focuses on build + deploy
   build-and-deploy:
     name: Build & Deploy to TestFlight
-    runs-on: macos-15
+    runs-on: macos-latest
     timeout-minutes: 90
     steps:
       - name: Checkout repository
