@@ -96,6 +96,47 @@ jobs:
           echo "Build output:"
           ls -la build/tvOS/ 2>/dev/null || echo "No build output found"
 
+      - name: Generate app icon from SVG
+        run: |
+          # Install rsvg-convert for SVG→PNG
+          brew install librsvg 2>/dev/null || true
+          SVG="Assets/AppIcon/snake_icon.svg"
+          ICONS_DIR=$(find build/tvOS -path "*/Images.xcassets/AppIcon.brandassets" -type d | head -1)
+          if [ -n "$ICONS_DIR" ] && [ -f "$SVG" ]; then
+            # Generate all required tvOS icon sizes with opaque background
+            # App Icon small: 400x240, large: 1280x768
+            # Top Shelf: 1920x720 (standard), 2320x720 (wide), 4640x1440 (wide 2x)
+            for dir in "$ICONS_DIR"/*/; do
+              find "$dir" -name "*.png" | while read png; do
+                # Get dimensions of existing placeholder
+                W=$(sips -g pixelWidth "$png" 2>/dev/null | tail -1 | awk '{print $2}')
+                H=$(sips -g pixelHeight "$png" 2>/dev/null | tail -1 | awk '{print $2}')
+                if [ -n "$W" ] && [ -n "$H" ] && [ "$W" -gt 0 ]; then
+                  # Render SVG centered on dark green background at this size
+                  rsvg-convert "$SVG" -w "$W" -h "$H" --keep-aspect-ratio -o /tmp/icon_fg.png 2>/dev/null
+                  # Create solid background
+                  sips -s format png -z "$H" "$W" --setProperty formatOptions 100 "$png" --out /tmp/icon_bg.png 2>/dev/null || true
+                  # Use Python to composite snake on dark background
+                  python3 -c "
+from PIL import Image
+bg = Image.new('RGB', ($W, $H), (30, 80, 30))
+try:
+    fg = Image.open('/tmp/icon_fg.png').convert('RGBA')
+    # Center the snake
+    ox = ($W - fg.width) // 2
+    oy = ($H - fg.height) // 2
+    bg.paste(fg, (ox, oy), fg)
+except: pass
+bg.save('$png')
+" 2>/dev/null || cp /tmp/icon_fg.png "$png" 2>/dev/null || true
+                  echo "Generated icon: $png (${W}x${H})"
+                fi
+              done
+            done
+          else
+            echo "No icon dir found or SVG missing, skipping icon generation"
+          fi
+
       - name: Set export compliance in ALL Info.plist files
         run: |
           # Set ITSAppUsesNonExemptEncryption=false in EVERY Info.plist in the
