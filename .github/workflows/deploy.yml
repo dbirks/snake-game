@@ -175,7 +175,6 @@ bg.save('$png')
 
       - name: Select Xcode and install tvOS platform
         run: |
-          # macOS 26 runners have Xcode 26.0 and 16.4
           sudo xcode-select -s /Applications/Xcode_26.app || sudo xcode-select -s /Applications/Xcode_16.4.app || sudo xcode-select -s /Applications/Xcode.app
           xcodebuild -version
           # Always download tvOS platform — even if SDK shows in showsdks,
