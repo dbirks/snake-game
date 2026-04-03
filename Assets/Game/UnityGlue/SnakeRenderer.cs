@@ -206,7 +206,8 @@ namespace SnakeGame.UnityGlue
         {
             if (_headMat != null) Destroy(_headMat);
             if (_bodyMat != null) Destroy(_bodyMat);
-            if (_foodMat != null) Destroy(_foodMat);
+            foreach (var food in _foodObjects)
+                if (food != null) Destroy(food);
         }
     }
 }

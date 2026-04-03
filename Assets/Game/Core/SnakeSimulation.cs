@@ -23,7 +23,7 @@ namespace SnakeGame.Core
         private readonly Random _rng;
 
         public SnakeState State { get; private set; }
-        public List<FoodItem> Foods { get; private set; } = new List<FoodItem>();
+        public List<FoodItem> Foods { get; set; } = new List<FoodItem>();
 
         public SnakeSimulation(int seed = 0)
         {
