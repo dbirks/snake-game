@@ -16,13 +16,13 @@ namespace SnakeGame.Core
     {
         public static int GrowthAmount(FruitType fruit) => fruit switch
         {
-            FruitType.Apple      => 3,
-            FruitType.Banana     => 1,
-            FruitType.Grape      => 1,
-            FruitType.Orange     => 1,
+            FruitType.Apple      => 5,
+            FruitType.Banana     => 3,
+            FruitType.Grape      => 3,
+            FruitType.Orange     => 3,
             FruitType.Strawberry => 0,
-            FruitType.Watermelon => 10,
-            _ => 3
+            FruitType.Watermelon => 15,
+            _ => 5
         };
 
         public static int ScoreValue(FruitType fruit) => fruit switch

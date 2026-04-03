@@ -110,11 +110,19 @@ namespace SnakeGame.UnityGlue
                 _simulation.Tick(Time.fixedDeltaTime, cmd);
             }
 
-            // Player 2
+            // Player 2 — share food list with player 1
             if (_simulation2 != null)
             {
+                _simulation2.Foods = _simulation.Foods; // shared food pool
                 var cmd = _input2 != null ? _input2.ConsumeCommand() : InputCommand.None;
                 _simulation2.Tick(Time.fixedDeltaTime, cmd);
+            }
+
+            // Cross-collision between snakes
+            if (_simulation != null && _simulation2 != null)
+            {
+                _simulation.CheckCrossCollision(_simulation2);
+                _simulation2.CheckCrossCollision(_simulation);
             }
 
             // Check if all players dead
@@ -132,7 +140,11 @@ namespace SnakeGame.UnityGlue
         {
             if (!_gameActive) return;
             if (snakeRenderer != null && _simulation != null)
+            {
                 snakeRenderer.Render(_simulation.State);
+                // Render food once (shared between players)
+                snakeRenderer.RenderFood(_simulation.Foods);
+            }
             if (_renderer2 != null && _simulation2 != null)
                 _renderer2.Render(_simulation2.State);
         }

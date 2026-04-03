@@ -37,6 +37,8 @@ namespace SnakeGame.Core
         public float HeadingAngle; // radians
         public int Score;
         public bool IsAlive;
+        // Food is now managed by SnakeSimulation (shared across players)
+        // These are kept for backwards compat but not used in new code
         public Vector2F FoodPosition;
         public FruitType CurrentFruit;
         public int TickCount;

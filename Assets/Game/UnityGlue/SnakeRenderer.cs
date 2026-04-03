@@ -16,19 +16,15 @@ namespace SnakeGame.UnityGlue
         [SerializeField] private float segmentScale = 0.35f;
         [SerializeField] private float foodScale = 0.5f;
 
-        private GameObject _foodObject;
+        private readonly System.Collections.Generic.List<GameObject> _foodObjects = new();
         private readonly System.Collections.Generic.List<GameObject> _segmentObjects = new();
         private Material _headMat;
         private Material _bodyMat;
-        private Material _foodMat;
 
         private void Awake()
         {
             _headMat = CreateFlatMaterial(snakeHeadColor);
             _bodyMat = CreateFlatMaterial(snakeBodyColor);
-            _foodMat = CreateFlatMaterial(foodColor);
-
-            _foodObject = CreateCircle("Food", _foodMat, foodScale);
         }
 
         /// <summary>
@@ -101,32 +97,60 @@ namespace SnakeGame.UnityGlue
                 _segmentObjects[i].transform.position = new Vector3(seg.X, seg.Y, 0f);
             }
 
-            // Position and style food based on fruit type
-            _foodObject.transform.position = new Vector3(
-                state.FoodPosition.X, state.FoodPosition.Y, 0f);
-            UpdateFruitAppearance(state.CurrentFruit);
         }
 
-        private void UpdateFruitAppearance(SnakeGame.Core.FruitType fruit)
+        /// <summary>
+        /// Render the shared food items (called from GameManager, not per-snake).
+        /// </summary>
+        public void RenderFood(System.Collections.Generic.List<Core.FoodItem> foods)
         {
-            var sr = _foodObject.GetComponent<SpriteRenderer>();
-            if (sr == null) return;
-
-            Color c;
-            float scale;
-            switch (fruit)
+            // Ensure enough food objects
+            while (_foodObjects.Count < foods.Count)
             {
-                case Core.FruitType.Apple:      c = new Color(0.9f, 0.2f, 0.2f); scale = 0.5f; break;
-                case Core.FruitType.Banana:     c = new Color(1f, 0.9f, 0.2f);   scale = 0.55f; break;
-                case Core.FruitType.Grape:      c = new Color(0.6f, 0.2f, 0.8f); scale = 0.4f; break;
-                case Core.FruitType.Orange:     c = new Color(1f, 0.6f, 0f);     scale = 0.5f; break;
-                case Core.FruitType.Strawberry: c = new Color(1f, 0.3f, 0.4f);   scale = 0.4f; break;
-                case Core.FruitType.Watermelon: c = new Color(0.2f, 0.8f, 0.3f); scale = 0.7f; break;
-                default:                        c = new Color(0.9f, 0.2f, 0.2f); scale = 0.5f; break;
+                var mat = CreateFlatMaterial(Color.white);
+                var obj = CreateCircle($"Food_{_foodObjects.Count}", mat, foodScale);
+                _foodObjects.Add(obj);
             }
-            sr.color = c;
-            _foodObject.transform.localScale = Vector3.one * scale;
+
+            // Hide excess
+            for (int i = foods.Count; i < _foodObjects.Count; i++)
+                _foodObjects[i].SetActive(false);
+
+            // Position and style each food
+            for (int i = 0; i < foods.Count; i++)
+            {
+                var food = foods[i];
+                _foodObjects[i].SetActive(true);
+                _foodObjects[i].transform.position = new Vector3(food.Position.X, food.Position.Y, 0f);
+
+                var sr = _foodObjects[i].GetComponent<SpriteRenderer>();
+                if (sr != null)
+                {
+                    sr.color = GetFruitColor(food.Fruit);
+                    _foodObjects[i].transform.localScale = Vector3.one * GetFruitScale(food.Fruit);
+                }
+            }
         }
+
+        private static Color GetFruitColor(Core.FruitType fruit) => fruit switch
+        {
+            Core.FruitType.Apple      => new Color(0.9f, 0.2f, 0.2f),
+            Core.FruitType.Banana     => new Color(1f, 0.9f, 0.2f),
+            Core.FruitType.Grape      => new Color(0.6f, 0.2f, 0.8f),
+            Core.FruitType.Orange     => new Color(1f, 0.6f, 0f),
+            Core.FruitType.Strawberry => new Color(1f, 0.3f, 0.4f),
+            Core.FruitType.Watermelon => new Color(0.2f, 0.8f, 0.3f),
+            _ => new Color(0.9f, 0.2f, 0.2f)
+        };
+
+        private static float GetFruitScale(Core.FruitType fruit) => fruit switch
+        {
+            Core.FruitType.Grape      => 0.4f,
+            Core.FruitType.Strawberry => 0.4f,
+            Core.FruitType.Banana     => 0.55f,
+            Core.FruitType.Watermelon => 0.7f,
+            _ => 0.5f
+        };
 
         /// <summary>
         /// Create a circle-like sprite for a flat look (instead of 3D quad).
