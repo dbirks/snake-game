@@ -155,12 +155,17 @@ jobs:
         run: |
           sudo xcode-select -s /Applications/Xcode_16.2.app || sudo xcode-select -s /Applications/Xcode_16.app || sudo xcode-select -s /Applications/Xcode.app
           xcodebuild -version
-          # Always download tvOS platform -- even if SDK shows in showsdks,
-          # it may not be registered as an installed platform
+          # Run first launch tasks (registers platforms)
+          sudo xcodebuild -runFirstLaunch 2>&1 || true
+          # Download tvOS platform
           echo "Downloading tvOS platform..."
           xcodebuild -downloadPlatform tvOS 2>&1 || true
+          # Accept license
+          sudo xcodebuild -license accept 2>&1 || true
           echo "Verifying tvOS SDK:"
           xcodebuild -showsdks | grep tvos
+          echo "Checking destinations:"
+          xcodebuild -showdestinations -scheme Unity-iPhone -project build/tvOS/Unity-iPhone.xcodeproj 2>&1 | head -20 || true
 
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
