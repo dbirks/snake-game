@@ -12,7 +12,7 @@ namespace SnakeGame.Core
         public const float ArenaWidth = 20f;
         public const float ArenaHeight = 12f;
         public const float DefaultSpeed = 4f;
-        public const float TurnRate = 3.5f; // radians per second
+        public const float TurnRate = 8f; // radians per second (snappy steering)
         public const float FoodRadius = 0.5f;
         public const float SegmentSpacing = 0.4f;
         public const int InitialLength = 5;
