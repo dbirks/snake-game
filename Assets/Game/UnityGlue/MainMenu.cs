@@ -161,6 +161,19 @@ namespace SnakeGame.UnityGlue
                 "Back"
             };
 
+            // 2P note
+            if (Config.PlayerCount == 2)
+            {
+                var noteStyle = new GUIStyle(GUI.skin.label)
+                {
+                    fontSize = 24,
+                    alignment = TextAnchor.MiddleCenter
+                };
+                noteStyle.normal.textColor = new Color(1f, 1f, 1f, 0.4f);
+                GUI.Label(new Rect(0, cy + 180, Screen.width, 40),
+                    "2P requires a second Bluetooth controller (Xbox, PS, Switch Pro)", noteStyle);
+            }
+
             // Color preview
             var previewColor = SnakeColorPalette.GetHeadColor(Config.Player1Color);
             var previewRect = new Rect(cx - 20, cy - 100, 40, 40);
