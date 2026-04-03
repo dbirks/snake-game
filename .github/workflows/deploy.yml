@@ -19,7 +19,7 @@ env:
   UNITY_CHANGESET: '8535861f39e1'
 
 jobs:
-  # Tests run separately via test.yml — this workflow focuses on build + deploy
+  # Tests run separately via test.yml -- this workflow focuses on build + deploy
   build-and-deploy:
     name: Build & Deploy to TestFlight
     runs-on: macos-15
@@ -98,7 +98,7 @@ jobs:
 
       - name: Generate app icon from SVG
         run: |
-          # Install rsvg-convert for SVG→PNG
+          # Install rsvg-convert for SVG->PNG
           brew install librsvg 2>/dev/null || true
           SVG="Assets/AppIcon/snake_icon.svg"
           ICONS_DIR=$(find build/tvOS -path "*/Images.xcassets/AppIcon.brandassets" -type d | head -1)
@@ -142,7 +142,7 @@ bg.save('$png')
           # Set ITSAppUsesNonExemptEncryption=false in EVERY Info.plist in the
           # Xcode project. This must be in the source plist before xcodebuild
           # archive, so it's baked into the final IPA. Apple reads this at
-          # processing time — it's the only reliable way to skip compliance.
+          # processing time -- it's the only reliable way to skip compliance.
           find build/tvOS -name "Info.plist" | while read plist; do
             /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" "$plist" 2>/dev/null || \
             /usr/libexec/PlistBuddy -c "Set :ITSAppUsesNonExemptEncryption false" "$plist"
@@ -177,7 +177,7 @@ bg.save('$png')
         run: |
           sudo xcode-select -s /Applications/Xcode_16.2.app || sudo xcode-select -s /Applications/Xcode_16.app || sudo xcode-select -s /Applications/Xcode.app
           xcodebuild -version
-          # Always download tvOS platform — even if SDK shows in showsdks,
+          # Always download tvOS platform -- even if SDK shows in showsdks,
           # it may not be registered as an installed platform
           echo "Downloading tvOS platform..."
           xcodebuild -downloadPlatform tvOS 2>&1 || true
