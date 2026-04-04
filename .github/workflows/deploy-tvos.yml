@@ -96,6 +96,31 @@ jobs:
           echo "Build output:"
           ls -la build/tvOS/ 2>/dev/null || echo "No build output found"
 
+      - name: Remove LaunchScreen storyboard (avoids tvOS platform runtime requirement)
+        run: |
+          # ibtool needs the full tvOS simulator runtime (~4GB) to compile storyboards.
+          # Instead, replace LaunchScreen.storyboard with a plist-based launch screen
+          # which doesn't need ibtool at all.
+          PBXPROJ=$(find build/tvOS -name "project.pbxproj" | head -1)
+          STORYBOARD=$(find build/tvOS -name "LaunchScreen.storyboard" | head -1)
+          if [ -n "$STORYBOARD" ]; then
+            rm -f "$STORYBOARD"
+            echo "Removed $STORYBOARD"
+          fi
+          # Add UILaunchScreen to Info.plist (replaces storyboard-based launch)
+          PLIST=$(find build/tvOS -name "Info.plist" -not -path "*/UnityFramework/*" | head -1)
+          if [ -n "$PLIST" ]; then
+            /usr/libexec/PlistBuddy -c "Delete :UILaunchStoryboardName" "$PLIST" 2>/dev/null || true
+            /usr/libexec/PlistBuddy -c "Add :UILaunchScreen dict" "$PLIST" 2>/dev/null || true
+            /usr/libexec/PlistBuddy -c "Add :UILaunchScreen:UIColorName string SystemBackgroundColor" "$PLIST" 2>/dev/null || true
+            echo "Set plist-based launch screen in $PLIST"
+          fi
+          # Remove storyboard reference from Xcode project if present
+          if [ -n "$PBXPROJ" ]; then
+            sed -i '' '/LaunchScreen\.storyboard/d' "$PBXPROJ" 2>/dev/null || true
+            echo "Removed storyboard references from project.pbxproj"
+          fi
+
       - name: Generate app icon from SVG
         run: |
           brew install librsvg 2>/dev/null || true
