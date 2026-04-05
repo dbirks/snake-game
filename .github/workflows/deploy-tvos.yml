@@ -123,24 +123,8 @@ jobs:
             echo "Cleaned storyboard references from $PBXPROJ"
           fi
 
-      - name: Generate app icon from SVG
-        run: |
-          brew install librsvg 2>/dev/null || true
-          SVG="Assets/AppIcon/snake_icon.svg"
-          ICONS_DIR=$(find build/tvOS -path "*/Images.xcassets/AppIcon.brandassets" -type d | head -1)
-          if [ -n "$ICONS_DIR" ] && [ -f "$SVG" ]; then
-            find "$ICONS_DIR" -name "*.png" | while read png; do
-              W=$(sips -g pixelWidth "$png" 2>/dev/null | tail -1 | awk '{print $2}')
-              H=$(sips -g pixelHeight "$png" 2>/dev/null | tail -1 | awk '{print $2}')
-              if [ -n "$W" ] && [ -n "$H" ] && [ "$W" -gt 0 ]; then
-                rsvg-convert "$SVG" -w "$W" -h "$H" --keep-aspect-ratio -o /tmp/icon_fg.png 2>/dev/null
-                cp /tmp/icon_fg.png "$png" 2>/dev/null || true
-                echo "Generated icon: $png (${W}x${H})"
-              fi
-            done
-          else
-            echo "Skipping icon generation"
-          fi
+      # Icon generation removed -- Unity placeholders work fine after alpha stripping.
+      # Custom icon can be added later via Unity Editor asset import.
 
       - name: Set export compliance in ALL Info.plist files
         run: |
