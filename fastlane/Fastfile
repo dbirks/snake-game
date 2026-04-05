@@ -136,6 +136,7 @@ platform :ios do
       include_bitcode: false,
       include_symbols: true,
       sdk: "appletvos",
+      disable_xcpretty: true,
       xcargs: [
         (ENV['CI'] ? "OTHER_CODE_SIGN_FLAGS='--keychain build.keychain'" : ""),
         "-allowProvisioningUpdates",

@@ -102,23 +102,25 @@ jobs:
           # Instead, replace LaunchScreen.storyboard with a plist-based launch screen
           # which doesn't need ibtool at all.
           PBXPROJ=$(find build/tvOS -name "project.pbxproj" | head -1)
-          STORYBOARD=$(find build/tvOS -name "LaunchScreen.storyboard" | head -1)
-          if [ -n "$STORYBOARD" ]; then
-            rm -f "$STORYBOARD"
-            echo "Removed $STORYBOARD"
-          fi
-          # Add UILaunchScreen to Info.plist (replaces storyboard-based launch)
-          PLIST=$(find build/tvOS -name "Info.plist" -not -path "*/UnityFramework/*" | head -1)
-          if [ -n "$PLIST" ]; then
+          # Remove ALL LaunchScreen storyboard files
+          find build/tvOS -name "LaunchScreen.storyboard" -exec rm -f {} \; -print
+
+          # Fix Info.plist in main app target (not framework)
+          PLIST="build/tvOS/Info.plist"
+          if [ -f "$PLIST" ]; then
             /usr/libexec/PlistBuddy -c "Delete :UILaunchStoryboardName" "$PLIST" 2>/dev/null || true
             /usr/libexec/PlistBuddy -c "Add :UILaunchScreen dict" "$PLIST" 2>/dev/null || true
             /usr/libexec/PlistBuddy -c "Add :UILaunchScreen:UIColorName string SystemBackgroundColor" "$PLIST" 2>/dev/null || true
             echo "Set plist-based launch screen in $PLIST"
           fi
-          # Remove storyboard reference from Xcode project if present
+
+          # Remove storyboard references from Xcode project
+          PBXPROJ=$(find build/tvOS -name "project.pbxproj" | head -1)
           if [ -n "$PBXPROJ" ]; then
-            sed -i '' '/LaunchScreen\.storyboard/d' "$PBXPROJ" 2>/dev/null || true
-            echo "Removed storyboard references from project.pbxproj"
+            grep -c "LaunchScreen" "$PBXPROJ" && echo "Found LaunchScreen refs in pbxproj"
+            sed -i.bak '/LaunchScreen/d' "$PBXPROJ"
+            rm -f "${PBXPROJ}.bak"
+            echo "Cleaned storyboard references from $PBXPROJ"
           fi
 
       - name: Generate app icon from SVG
